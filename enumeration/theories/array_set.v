@@ -56,8 +56,8 @@ Definition array_inter {t : Type} (lt_t : rel t) (a b : array t):=
 Lemma array_interE {t : Type} (lt_t : rel t) (a b : array t):
   AIC.array_inter lt_t a b = array_inter lt_t a b.
 Proof.
-rewrite /AIC.array_inter /array_inter ifoldE /ifold. 
-by elim: (irange0 _).
+rewrite /AIC.array_inter /array_inter ifoldE /ifold /ifoldx. 
+by elim: (irange 0 _).
 Qed.
 
 End ArrayInterEquiv.
@@ -196,7 +196,7 @@ Lemma array_inter_foldP a b n:
   inter_step_inv a b i j c.
 Proof.
 move=> st_a st_b.
-rewrite /ifold; elim/last_ind: (irange0 n)=> [|h t]; last first.
+rewrite /ifold /ifoldx; elim/last_ind: (irange 0 n)=> [|h t]; last first.
   rewrite foldl_rcons; set F := foldl _ _ _; case: F=> -[i j] c; exact:array_inter_stepP.
 rewrite /=; split; rewrite ?lexx /irange0 ?irangee //=; try (by move=> _ k; rewrite ltx0).
 by apply/eqP; rewrite cards_eq0 -subset0; apply/subsetP=> x; rewrite inE=> /andP [/imsetP []].
@@ -216,9 +216,9 @@ move=> st_a st_b;
 set F := ifold _ _ _; case F_eq: F=> [[i j] c].
 suff: inter_step_inv a b i j c /\ stop_inv a b i j n by case.
 move: F_eq.
-rewrite {}/F /ifold irange0_iota /stop_inv.
+rewrite {}/F /ifold /ifoldx -/(irange0 _) irange0_iota /stop_inv.
 elim: (int_to_nat n) i j c=> [|n' IHn] i' j' c'.
-- move: (array_inter_foldP 0%uint63 st_a st_b)=> /=; rewrite /ifold /irange0 irangee /=.
+- move: (array_inter_foldP 0%uint63 st_a st_b)=> /=; rewrite /ifold /ifoldx irangee /=.
   by move=> ? [<- <- <-]; split=> //; split=> //; rewrite le0x.
 - rewrite iotaS_rcons add0n map_rcons foldl_rcons.
   case F_eq: (foldl _ _ _)=> [[i j] c]; case: (IHn _ _ _ F_eq).

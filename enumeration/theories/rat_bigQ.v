@@ -489,6 +489,9 @@ Definition bigQ_dot (x y : array bigQ) : bigQ :=
 Definition bigQ_mul_row_mx (a : array bigQ) (x : array (array bigQ)) :=
   PArrayUtils.array_mul_row_mx BigQ.add BigQ.mul 0%bigQ a x.
 
+Definition bigQ_mul_mx_col (x : array (array bigQ)) (a : array bigQ):=
+  PArrayUtils.array_mul_mx_col BigQ.add BigQ.mul 0%bigQ x a. 
+
 Definition bigQ_mulmx (m n : array (array bigQ)):=
   PArrayUtils.array_mulmx BigQ.add BigQ.mul 0%bigQ m n.
 
@@ -501,10 +504,13 @@ Definition BQltx_order (x y : array bigQ) :=
 Definition eq_array_bigQ (a b : array bigQ) :=
   PArrayUtils.eq_array_rel (BigQ.eqb) a b.
 
-Definition bigQ_scal_rV (lambda : bigQ) (x : array bigQ):=
+Definition bigQ_scal_arr (lambda : bigQ) (x : array bigQ):=
   PArrayUtils.map (fun v=> BigQ.mul lambda v) x.
 
-Definition bigQ_add_rV (x y : array bigQ):=
+Definition bigQ_scal_mat (lambda : bigQ) (M : array (array bigQ)):=
+  PArrayUtils.map (fun c => bigQ_scal_arr lambda c) M.
+
+Definition bigQ_add_arr (x y : array bigQ):=
   PArrayUtils.mk_fun (fun i=> (x.[i] + y.[i])%bigQ) (length x) (0%bigQ).
 
 Definition bigQ_ge0 (x : bigQ):= match (0 ?= x)%bigQ with
@@ -514,7 +520,7 @@ end.
 
 Definition weighted_lines (v : array bigQ) (A : array (array bigQ)):=
   PArrayUtils.fold_pair
-    (fun v_i A_i acc => bigQ_add_rV acc (bigQ_scal_rV v_i A_i))
+    (fun v_i A_i acc => bigQ_add_arr acc (bigQ_scal_arr v_i A_i))
   v A (make (length A.[0%uint63]) 0%bigQ).
 
 End BigQUtils.
@@ -526,6 +532,9 @@ Definition bigQ_dot (x y : array bigQ) : bigQ :=
 
 Definition bigQ_mul_row_mx (a : array bigQ) (x : array (array bigQ)) :=
   array_mul_row_mx BigQ.add BigQ.mul 0%bigQ a x.
+
+Definition bigQ_mul_mx_col (x : array (array bigQ)) (a : array bigQ):=
+  array_mul_mx_col BigQ.add BigQ.mul 0%bigQ x a.
 
 Definition bigQ_mulmx (m n : array (array bigQ)):=
   array_mulmx BigQ.add BigQ.mul 0%bigQ m n.
@@ -539,15 +548,18 @@ Definition BQltx_order (x y : array bigQ) :=
 Definition eq_array_bigQ (a b : array bigQ) :=
   eq_array_rel (BigQ.eqb) a b.
 
-Definition bigQ_scal_rV (lambda : bigQ) (x : array bigQ):=
+Definition bigQ_scal_arr (lambda : bigQ) (x : array bigQ):=
   arr_map (fun v=> BigQ.mul lambda v) x.
 
-Definition bigQ_add_rV (x y : array bigQ):=
+Definition bigQ_scal_mat (lambda : bigQ) (M : array (array bigQ)):=
+  arr_map (fun c => bigQ_scal_arr lambda c) M.
+
+Definition bigQ_add_arr (x y : array bigQ):=
   arr_mk_fun (fun i=> (x.[i] + y.[i])%bigQ) (length x) (0%bigQ).
 
 Definition weighted_lines (v : array bigQ) (A : array (array bigQ)):=
   arr_fold_pair
-    (fun v_i A_i acc => bigQ_add_rV acc (bigQ_scal_rV v_i A_i))
+    (fun v_i A_i acc => bigQ_add_arr acc (bigQ_scal_arr v_i A_i))
     v A (make (length A.[0%uint63]) 0%bigQ).
 
 Section Equiv.
@@ -559,6 +571,11 @@ Proof. exact: array_dotE. Qed.
 Lemma bigQ_mul_row_mxE (a : array bigQ) (x : array (array bigQ)):
   BigQUtils.bigQ_mul_row_mx a x = bigQ_mul_row_mx a x.
 Proof. exact: array_mul_row_mxE. Qed.
+
+Lemma bigQ_mul_mx_colE (x : array (array bigQ)) (a : array bigQ):
+  BigQUtils.bigQ_mul_mx_col x a = bigQ_mul_mx_col x a.
+Proof. exact: array_mul_mx_colE. Qed.
+(* TODO : proof of correctness *)
 
 Lemma bigQ_mulmxE (m n : array (array bigQ)):
   BigQUtils.bigQ_mulmx m n = bigQ_mulmx m n.
@@ -576,19 +593,28 @@ Lemma eq_array_bigQE (a b : array bigQ):
   BigQUtils.eq_array_bigQ a b = eq_array_bigQ a b.
 Proof. exact: eq_array_relE. Qed.
 
-Lemma bigQ_scal_rVE (lambda : bigQ) (x : array bigQ):
-  BigQUtils.bigQ_scal_rV lambda x = bigQ_scal_rV lambda x.
-Proof. by rewrite /BigQUtils.bigQ_scal_rV arr_mapE. Qed.
+Lemma bigQ_scal_arrE (lambda : bigQ) (x : array bigQ):
+  BigQUtils.bigQ_scal_arr lambda x = bigQ_scal_arr lambda x.
+Proof. by rewrite /BigQUtils.bigQ_scal_arr arr_mapE. Qed.
 
-Lemma bigQ_add_rVE (x y : array bigQ):
-  BigQUtils.bigQ_add_rV x y = bigQ_add_rV x y.
-Proof. by rewrite /BigQUtils.bigQ_add_rV arr_mk_funE. Qed.
+Lemma bigQ_scal_matE (lambda : bigQ) (x : array (array bigQ)):
+  BigQUtils.bigQ_scal_mat lambda x = bigQ_scal_mat lambda x.
+Proof. 
+rewrite /BigQUtils.bigQ_scal_mat arr_mapE /bigQ_scal_mat /arr_map.
+rewrite bigQ_scal_arrE; apply: eq_foldl=> ??.  
+by rewrite bigQ_scal_arrE.
+Qed.
+(*TODO : proof of correctness*)
+
+Lemma bigQ_add_arrE (x y : array bigQ):
+  BigQUtils.bigQ_add_arr x y = bigQ_add_arr x y.
+Proof. by rewrite /BigQUtils.bigQ_add_arr arr_mk_funE. Qed.
 
 Lemma weighted_linesE (v : array bigQ) (A : array (array bigQ)):
   BigQUtils.weighted_lines v A = weighted_lines v A.
 Proof.
 rewrite /BigQUtils.weighted_lines arr_fold_pairE; apply/eq_foldl=> ??.
-by rewrite bigQ_add_rVE bigQ_scal_rVE.
+by rewrite bigQ_add_arrE bigQ_scal_arrE.
 Qed.
 
 End Equiv.
@@ -689,15 +715,15 @@ Lemma BQR_array_mul_rV_mx:
     bigQ_mul_row_mx rat_mul_row_mx.
 Proof. by apply:rel_array_mul_row_mx; [exact:rat_bigQ_add|exact:rat_bigQ_mul|]. Qed.
 
-Definition rat_add_rV (X Y : array rat):=
+Definition rat_add_arr (X Y : array rat):=
   (arr_mk_fun (fun i=> (get X i + get Y i)%R) (length X) (0%R)).
 
 Lemma BQR_array_add x X y Y:
   (length X = length Y) ->
   rel_array rat_bigQ x X -> rel_array rat_bigQ y Y -> 
-  rel_array rat_bigQ (bigQ_add_rV x y) (rat_add_rV X Y).
+  rel_array rat_bigQ (bigQ_add_arr x y) (rat_add_arr X Y).
 Proof.
-move=> len_eq xX yY; rewrite /bigQ_add_rV.
+move=> len_eq xX yY; rewrite /bigQ_add_arr.
 rewrite (rel_array_length xX); apply/rel_array_arr_mk_fun=> //.
   by rewrite leEint leb_length.
 move=> i i_len; apply/rat_bigQ_add.
@@ -707,12 +733,12 @@ move=> i i_len; apply/rat_bigQ_add.
   rewrite -len_eq i_len; exact.
 Qed.
 
-Definition rat_scal_rV (lambda : rat) (X : array rat):=
+Definition rat_scal_arr (lambda : rat) (X : array rat):=
   arr_map (fun v=> (lambda * v)%R) X.
 
 Lemma BQR_array_scal:
   (rat_bigQ =~> rel_array rat_bigQ =~> rel_array rat_bigQ)
-  bigQ_scal_rV rat_scal_rV.
+  bigQ_scal_arr rat_scal_arr.
 Proof.
 move=> l L lL x X xX; apply/rel_array_map; [|exact:xX].
 exact:rat_bigQ_mul.
@@ -720,7 +746,7 @@ Qed.
 
 Definition rat_weighted_lines v A:=
   arr_fold_pair
-  (fun v_i A_i acc => rat_add_rV acc (rat_scal_rV v_i A_i))
+  (fun v_i A_i acc => rat_add_arr acc (rat_scal_arr v_i A_i))
   v A (make (length A.[0%uint63]) 0%R).
 
 Lemma BQR_array_weighted_lines v V a A:
@@ -799,7 +825,7 @@ Qed.
 
 Lemma rel_rV_rat_add:
   (rel_rV_rat =~> rel_rV_rat =~> rel_rV_rat)
-  (fun x y=> rat_add_rV x y)
+  (fun x y=> rat_add_arr x y)
   (fun X Y=> (X + Y)%R).
 Proof.
 move=> x X xX y Y yY; split; rewrite ?length_arr_mk_fun ?leEint ?leb_length ?(rel_cV_length xX) //.
@@ -812,7 +838,7 @@ Qed.
 
 Lemma rel_rV_rat_scal lambda:
   (rel_rV_rat =~> rel_rV_rat)
-  (rat_scal_rV lambda) (fun X=> (lambda *: X)%R).
+  (rat_scal_arr lambda) (fun X=> (lambda *: X)%R).
 Proof.
 move=> x X xX; split; rewrite ?length_arr_map ?(rel_cV_length xX) //.
 by move=> i; rewrite !mxE arr_map_nth (rel_rV_nth xX).
@@ -991,17 +1017,17 @@ Qed.
 
 Lemma rel_rV_bqr_add (n : nat):
   (@rel_rV_bqr n =~> @rel_rV_bqr n =~> @rel_rV_bqr n)
-  bigQ_add_rV (fun v w=> (v + w)%R).
+  bigQ_add_arr (fun v w=> (v + w)%R).
 Proof.
 move=> x X' [X xX XX'] y Y' [Y yY YY'].
 move: (rel_rV_rat_add XX' YY').
-exists (rat_add_rV X Y)=> //; apply/BQR_array_add=> //.
+exists (rat_add_arr X Y)=> //; apply/BQR_array_add=> //.
 by apply/int_to_nat_inj; rewrite -(rel_cV_length XX') -(rel_cV_length YY').
 Qed.
 
 Lemma rel_rV_bqr_scal (n : nat):
   (rat_bigQ =~> @rel_rV_bqr n =~> @rel_rV_bqr n)
-  bigQ_scal_rV (fun L X=> (L *: X)%R).
+  bigQ_scal_arr (fun L X=> (L *: X)%R).
 Proof.
 move=> l L lL; apply/rel_comp_func; [exact/BQR_array_scal/lL|].
 exact/rel_rV_rat_scal.

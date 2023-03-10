@@ -576,7 +576,7 @@ Qed.
 
 Lemma repr_graph_diameter : diameter_BFS g = Hdiameter_BFS G succ :> nat.
 Proof.
-rewrite /diameter_BFS /Hdiameter_BFS /ifold.
+rewrite /diameter_BFS /Hdiameter_BFS /ifold /ifoldx -/(irange0 _).
 rewrite (rel_struct_vtx_set gG) big_imfset //= undup_id ?uniq_irange //.
 rewrite (perm_big (irange0 (length g))).
 - apply/uniq_perm=> //; try exact/uniq_irange.

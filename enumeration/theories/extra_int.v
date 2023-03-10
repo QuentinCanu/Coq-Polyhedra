@@ -527,6 +527,8 @@ Qed.
 
 End IRange.
 
+(* -------------------------------------------------------------------- *)
+
 Module IFold.
 
 Fixpoint ifold_ {T : Type} (n : nat) (f : int -> T -> T) (i M : int) (x : T) :=
@@ -538,13 +540,15 @@ Fixpoint ifold_ {T : Type} (n : nat) (f : int -> T -> T) (i M : int) (x : T) :=
       (i, x)
     else (i, x).
 
+Definition ifoldx {T : Type} (f : int -> T -> T) (i M : int) (x : T):=
+  (ifold_ Uint63.size f i M x).2.
+
 Definition ifold {T : Type} (f : int -> T -> T) (i : int) (x : T) :=
-  (ifold_ Uint63.size f 0 i x).2.
+  ifoldx f 0 i x.
 
 Definition iall (f : int -> bool) (i : int):=
   (ifold (fun i acc=> acc && f i) i true).
 
-(* -------------------------------------------------------------------- *)
 Definition iofold_ {T U: Type} (n : nat) (f : int -> T -> T + U) (i M : int) (x : T + U) :=
   ifold_ n (fun i r=> if r is inl a then f i a else r) i M x.
 (*TODO : Replace by an actual interruption function*)
@@ -598,18 +602,29 @@ elim: n i x=> /= [i x | n IHn i x].
       rewrite ?nat_to_intK ?inE //; exact/(leq_ltn_trans N2_M)/int_thresholdP.
 Qed.
 
+Definition ifoldx {S : Type} (f : int -> S -> S) (i M : int) (x : S):=
+  foldl (fun s t => f t s) x (irange i M).
+
 Definition ifold {S : Type} (f : int -> S -> S) (M : int) (x : S):=
-  foldl (fun s t=> f t s) x (irange0 M).
+  ifoldx f 0 M x.
+
+Lemma ifoldxE {S : Type} (f : int -> S -> S) (i M : int) (x : S):
+  (i <= M)%nat ->
+  IFold.ifoldx f i M x = ifoldx f i M x.
+Proof.
+move=> iM.
+rewrite /IFold.ifoldx ifold_E //=.
+case: ifP=> //; rewrite subn1.
+move: (int_thresholdP M); rewrite /int_threshold; unlock.
+move/(ltn_addl i)=> M_inf; rewrite -ltnS.
+rewrite (ltn_predK M_inf).
+move: M_inf. rewrite leq_eqVlt ltnNge; case: leqP=> // _.
+by rewrite orbF=> /eqP <- _ /=; rewrite int_to_natK.
+Qed.
 
 Lemma ifoldE {S : Type} (f : int -> S -> S) (M : int) (x : S):
   IFold.ifold f M x = ifold f M x.
-Proof.
-rewrite /IFold.ifold ifold_E ?leq0n //=.
-move: (int_thresholdP M); rewrite /int_threshold; unlock.
-rewrite add0n -add1n -leq_subRL ?expn_gt0 //.
-rewrite leq_eqVlt ltnNge; case/orP=> [/eqP <-|]; rewrite ?leqnn ?int_to_natK //.
-by move/negPf => ->.
-Qed.
+Proof. by rewrite /IFold.ifold ifoldxE. Qed.
 
 Definition iall (f : int -> bool) (M : int) := 
   all f (irange0 M).
@@ -617,8 +632,8 @@ Definition iall (f : int -> bool) (M : int) :=
 Lemma iallE (f : int -> bool) (M : int):
   IFold.iall f M = iall f M.
 Proof. 
-rewrite /IFold.iall ifoldE /ifold /iall.
-elim/last_ind: (irange0 M)=> // t h IH.
+rewrite /IFold.iall ifoldE /ifold /iall /ifoldx /irange0.
+elim/last_ind: (irange 0 M)=> // t h IH.
 by rewrite foldl_rcons all_rcons andbC IH.
 Qed.
 
@@ -639,7 +654,7 @@ Qed.
 Lemma ifold_iter {T : Type} (f : T -> T) (n : int) (x : T):
   ifold (fun _=> f) n x = iter n f x.
 Proof.
-rewrite /ifold irange0_iota.
+rewrite /ifold /ifoldx -/(irange0 n) irange0_iota.
 elim: (int_to_nat n)=> // k IH.
 by rewrite iotaS_rcons add0n map_rcons foldl_rcons IH /=.
 Qed.

@@ -155,9 +155,18 @@ Definition array_mul_row_mx {T : Type} addf mulf x0
   (v : array T) (M : array (array T)):=
   map (fun c=> array_dot addf mulf x0 v c) M.
 
+Definition array_mul_mx_col {T : Type} addf mulf x0
+  (M : array (array T)) (v : array T):=
+  map (fun r => array_dot addf mulf x0 r v) M.
+
 Definition array_mulmx {T : Type} addf mulf x0
   (M N : array (array T)):=
   map (fun v=> array_mul_row_mx addf mulf x0 v N) M.
+
+Definition transpose {T : Type} (A : array (array T)):=
+  mk_fun 
+    (fun i => mk_fun (fun j => A.[j].[i]) (length A) (default (default A)))
+  (length A.[0]) (default A).
 
 End PArrayUtils.
 
@@ -180,7 +189,7 @@ Definition arr_fold {T S : Type} (f : T -> S -> S) (a : array T) (x : S):=
 Lemma arr_foldE {T S : Type} (f : T -> S -> S) (a : array T) (x : S):
   PArrayUtils.fold f a x = arr_fold f a x.
 Proof.
-rewrite /PArrayUtils.fold ifoldE /arr_fold /arr_to_seq /ifold.
+rewrite /PArrayUtils.fold ifoldE /arr_fold /arr_to_seq /ifold /ifoldx -/(irange0 _).
 elim/last_ind: (irange0 (length a))=> //= h t.
 by rewrite map_rcons !foldl_rcons => ->.
 Qed.
@@ -192,7 +201,7 @@ Lemma arr_allE {T : Type} a (p : T -> bool):
   PArrayUtils.all p a = arr_all p a.
 Proof.
 rewrite /arr_all /PArrayUtils.all /IFold.iall ifoldE.
-rewrite /ifold /arr_to_seq.
+rewrite /ifold /arr_to_seq /ifoldx -/(irange0 _).
 elim/last_ind : (irange0 (length a))=> //= t h IH.
 by rewrite foldl_rcons map_rcons all_rcons andbC IH.
 Qed.
@@ -227,7 +236,7 @@ Qed.
 Lemma arr_fold_pairE {A T1 T2 : Type} a1 a2 (f : T1 -> T2 -> A -> A) (x0 : A):
   PArrayUtils.fold_pair f a1 a2 x0 = arr_fold_pair f a1 a2 x0.
 Proof.
-rewrite /PArrayUtils.fold_pair ifoldE /ifold /arr_fold_pair.
+rewrite /PArrayUtils.fold_pair ifoldE /ifold /ifoldx -/(irange0 _) /arr_fold_pair.
 rewrite /arr_to_seq zip_map_irange.
 set n := if _ then _ else _.
 elim/last_ind: (irange0 n)=> //= t h IH.
@@ -384,7 +393,7 @@ Proof. by rewrite /PArrayUtils.map ifoldE. Qed.
 Lemma length_arr_map {T T' : Type} (a : array T) (f : T -> T'):
   length (arr_map f a) = length a.
 Proof.
-rewrite /arr_map /ifold.
+rewrite /arr_map /ifold /ifoldx -/(irange0 _).
 elim/last_ind: (irange0 (length a)); rewrite ?length_make ?leb_length //.
 by move=> t h; rewrite foldl_rcons length_set.
 Qed.
@@ -392,7 +401,7 @@ Qed.
 Lemma arr_map_nth {T T' : Type} (a : array T) (f : T -> T'):
   forall k, (arr_map f a).[k] = f (a.[k]).
 Proof.
-move=> k; rewrite /arr_map /ifold.
+move=> k; rewrite /arr_map /ifold /ifoldx -/(irange0 _).
 case: (leP (length a) k).
 - move=> len_a_k; rewrite !get_out_of_bounds -?ltEint ?ltNge ?length_arr_map ?len_a_k //.
   elim/last_ind: (irange0 _)=> /=; rewrite ?default_make //.
@@ -440,7 +449,7 @@ Lemma length_arr_mk_fun {T : Type} (f : int -> T) (n : int) (x : T):
   (n <= max_length)%O -> length (arr_mk_fun f n x)= n.
 Proof.
 move=> n_max.
-rewrite /arr_mk_fun /arr_map_mem /ifold length_make -leEint n_max.
+rewrite /arr_mk_fun /arr_map_mem /ifold /ifoldx -/(irange0 _) length_make -leEint n_max.
 elim/last_ind: (irange0 n)=> /=; rewrite ?length_make -?leEint ?n_max //.
 by move=> t h IH; rewrite foldl_rcons length_set IH.
 Qed.
@@ -449,7 +458,7 @@ Lemma nth_arr_mk_fun {T : Type} (f : int -> T) (n : int) (x : T):
   (n <= max_length)%O -> forall i, (i < n)%O -> (arr_mk_fun f n x).[i] = f i.
 Proof.
 move=> n_max i i_n.
-rewrite /arr_mk_fun /arr_map_mem /ifold length_make -leEint n_max.
+rewrite /arr_mk_fun /arr_map_mem /ifold /ifoldx -/(irange0 _) length_make -leEint n_max.
 move: i_n; rewrite irange0_iota ltEint_nat.
 move: (leqnn (int_to_nat n))=> /[swap].
 elim: {-3}(int_to_nat n)=> // k IHk; rewrite iotaS_rcons add0n map_rcons foldl_rcons.
@@ -909,6 +918,10 @@ Definition array_mul_row_mx {T : Type} addf mulf x0
   (v : array T) (M : array (array T)):=
   arr_map (fun c=> array_dot addf mulf x0 v c) M.
 
+Definition array_mul_mx_col {T : Type} addf mulf x0
+  (M : array (array T)) (v : array T):=
+  arr_map (fun r => array_dot addf mulf x0 r v) M.
+
 Definition array_mulmx {T : Type} addf mulf x0
   (M N : array (array T)):=
   arr_map (fun v=> array_mul_row_mx addf mulf x0 v N) M.
@@ -928,6 +941,16 @@ rewrite /array_mul_row_mx /arr_map /ifold array_dotE.
 by apply/eq_foldl=> ??; rewrite array_dotE.
 Qed.
 
+Lemma array_mul_mx_colE {T : Type} addf mulf x0
+  (M : array (array T)) (v : array T):
+  PArrayUtils.array_mul_mx_col addf mulf x0 M v =
+  array_mul_mx_col addf mulf x0 M v.
+Proof.
+rewrite /PArrayUtils.array_mul_mx_col arr_mapE.
+rewrite /array_mul_mx_col /arr_map /ifold array_dotE.
+by apply/eq_foldl=> ??; rewrite array_dotE.
+Qed.
+
 Lemma array_mulmxE {T : Type} addf mulf x0
   (M N : array (array T)):
   PArrayUtils.array_mulmx addf mulf x0 M N =
@@ -939,3 +962,29 @@ by apply/eq_foldl=> ??; rewrite array_mul_row_mxE.
 Qed.
 
 End Mulmx.
+
+Section Transpose.
+Definition arr_transpose {T : Type} (A : array (array T)):=
+  arr_mk_fun 
+    (fun i => arr_mk_fun (fun j => A.[j].[i]) (length A) (default (default A)))
+  (length A.[0]) (default A).
+
+Lemma arr_transposeE {T : Type} (A : array (array T)):
+  PArrayUtils.transpose A = arr_transpose A.
+Proof.
+rewrite /PArrayUtils.transpose arr_mk_funE /arr_transpose.
+rewrite /arr_mk_fun /arr_map_mem arr_mk_funE.
+by apply: eq_foldl=> ??; rewrite arr_mk_funE.
+Qed.
+
+Lemma nth_arr_transpose {T : Type} (A : array (array T)) (i j : int):
+  (forall k, (k < length A)%O -> length A.[k] = length A.[0])->
+  (i < length A.[j])%O -> (j < length A)%O ->
+  (arr_transpose A).[i].[j] = A.[j].[i].
+Proof.
+move=> eq_len i_len j_len.
+rewrite /arr_transpose nth_arr_mk_fun ?leEint ?leb_length // -?(eq_len j) //.
+by rewrite nth_arr_mk_fun ?leEint ?leb_length.
+Qed.
+
+End Transpose.
