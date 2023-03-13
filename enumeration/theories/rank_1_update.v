@@ -62,11 +62,22 @@ Definition update
   (M B : array (array bigQ)) (x : array bigQ):=
   let M' := make (length M) (make (length M.[0]) 0%bigQ) in
   let B' := make (length B) (make (length B.[0]) 0%bigQ) in
-  let Mrs := M.[s].[r] in
-  let x' := BigQUtils.bigQ_add_arr x (BigQUtils.bigQ_scal_norm_arr ((b.[r] - M.[0%uint63].[r])/Mrs)%bigQ B.[I.[s]]) in
-  let M' := M'.[0 <- BigQUtils.bigQ_add_arr M.[0] (BigQUtils.bigQ_scal_norm_arr (b.[r] - M.[0%uint63].[r]/Mrs)%bigQ M.[Uint63.succ I.[s]])] in
-  let B' := B'.[r <- BigQUtils.bigQ_scal_norm_arr (1/Mrs) B'.[I.[s]]] in
-  let M' := M'.[r <- BigQUtils.bigQ_scal_norm_arr (1/Mrs) M'.[Uint63.succ I.[s]]] in
+  let Ms := M.[Uint63.succ I.[s]] in
+  let Mrs := Ms.[r] in
+  let Bs := B.[I.[s]] in
+  let Brs := Bs.[r] in
+  let x' := BigQUtils.bigQ_add_arr x (BigQUtils.bigQ_scal_norm_arr ((b.[r] - M.[0%uint63].[r])/Mrs)%bigQ Bs) in
+  let M' := M'.[0 <- BigQUtils.bigQ_add_arr M.[0] (BigQUtils.bigQ_scal_norm_arr (b.[r] - M.[0%uint63].[r]/Mrs)%bigQ Ms)] in
+  let B' := B'.[r <- BigQUtils.bigQ_scal_norm_arr (1/Mrs) Bs] in
+  let M' := M'.[r <- BigQUtils.bigQ_scal_norm_arr (1/Mrs) Ms] in
+  let: (B', M') := IFold.ifold (fun k '(B',M')=>
+    if (I.[k] =? s)%uint63 then (B',M') else
+    let B'k := BigQUtils.bigQ_add_arr (BigQUtils.bigQ_scal_arr Mrs B.[k]) (BigQUtils.bigQ_scal_arr M.[Uint63.succ I.[k]].[r] Bs) in
+    let B' := B'.[I.[k] <- BigQUtils.bigQ_scal_norm_arr (1/Mrs)%bigQ B'k] in
+    let M'k := BigQUtils.bigQ_add_arr (BigQUtils.bigQ_scal_arr Mrs M.[Uint63.succ k]) (BigQUtils.bigQ_scal_arr M.[Uint63.succ I.[k]].[r] Ms) in
+    let M' := M'.[Uint63.succ I.[k] <- BigQUtils.bigQ_scal_norm_arr (1/Mrs)%bigQ M'k] in
+    (B',M')
+    ) (length I) (B',M') in
   (x', B', M').
 
 
