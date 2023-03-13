@@ -461,14 +461,14 @@ Qed.
 Lemma rat_bigQ_injr: rel_spec rat_bigQ eq.
 Proof. by move=> ??? <- <-. Qed.
 
-(* Lemma rat_bigQEl b b' r:
+Lemma rat_bigQEl b b' r:
   rat_bigQ b r -> (b == b')%bigQ -> rat_bigQ b' r.
 Proof.
 rewrite /rat_bigQ /bigQ2rat_def /BigQ.eq.
 case: [b]%bigQ=> n d.
 case: [b']%bigQ=> n' d'.
 by move=> h /Qreduction.Qred_complete <-.
-Qed. *)
+Qed.
 
 (* Lemma rat_bigQEr b r r':
   rat_bigQ b r -> r = r' -> rat_bigQ b r'.
@@ -506,6 +506,9 @@ Definition eq_array_bigQ (a b : array bigQ) :=
 
 Definition bigQ_scal_arr (lambda : bigQ) (x : array bigQ):=
   PArrayUtils.map (fun v=> BigQ.mul lambda v) x.
+
+Definition bigQ_scal_norm_arr (lambda : bigQ) (x : array bigQ):=
+  PArrayUtils.map (fun v=> BigQ.mul_norm lambda v) x.
 
 Definition bigQ_scal_mat (lambda : bigQ) (M : array (array bigQ)):=
   PArrayUtils.map (fun c => bigQ_scal_arr lambda c) M.
@@ -550,6 +553,9 @@ Definition eq_array_bigQ (a b : array bigQ) :=
 
 Definition bigQ_scal_arr (lambda : bigQ) (x : array bigQ):=
   arr_map (fun v=> BigQ.mul lambda v) x.
+
+Definition bigQ_scal_norm_arr (lambda : bigQ) (x : array bigQ):=
+  arr_map (fun v=> BigQ.mul_norm lambda v) x.
 
 Definition bigQ_scal_mat (lambda : bigQ) (M : array (array bigQ)):=
   arr_map (fun c => bigQ_scal_arr lambda c) M.
@@ -596,6 +602,10 @@ Proof. exact: eq_array_relE. Qed.
 Lemma bigQ_scal_arrE (lambda : bigQ) (x : array bigQ):
   BigQUtils.bigQ_scal_arr lambda x = bigQ_scal_arr lambda x.
 Proof. by rewrite /BigQUtils.bigQ_scal_arr arr_mapE. Qed.
+
+Lemma bigQ_scal_norm_arrE (lambda : bigQ) (x : array bigQ):
+  BigQUtils.bigQ_scal_norm_arr lambda x = bigQ_scal_norm_arr lambda x.
+Proof. by rewrite /BigQUtils.bigQ_scal_norm_arr arr_mapE. Qed.
 
 Lemma bigQ_scal_matE (lambda : bigQ) (x : array (array bigQ)):
   BigQUtils.bigQ_scal_mat lambda x = bigQ_scal_mat lambda x.
@@ -743,6 +753,17 @@ Proof.
 move=> l L lL x X xX; apply/rel_array_map; [|exact:xX].
 exact:rat_bigQ_mul.
 Qed.
+
+Lemma BQR_array_scal_norm:
+  (rat_bigQ =~> rel_array rat_bigQ =~> rel_array rat_bigQ)
+  bigQ_scal_norm_arr rat_scal_arr.
+Proof.
+move=> l L lL x X xX; apply/rel_array_map; [|exact: xX].
+move=> r R rR; apply:rat_bigQEl; [exact:(rat_bigQ_mul lL rR)|].
+apply/QArith_base.Qeq_sym/QArith_base.Qeq_trans; [apply:BigQ.spec_mul_norm|].
+exact/QArith_base.Qeq_sym/BigQ.spec_mul.
+Qed.
+
 
 Definition rat_weighted_lines v A:=
   arr_fold_pair
