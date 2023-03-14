@@ -13,13 +13,6 @@ Import GRing.Theory Num.Theory.
 
 (* ---------------------------------------------------------------------------- *)
 
-Section Defs.
-
-Definition explored_bases := array (option (array (array bigQ) * bigQ)).
-Definition basis := (array Uint63.int).
-
-End Defs.
-
 Local Notation int63 := Uint63.int.
 
 (* ---------------------------------------------------------------------------- *)
@@ -54,36 +47,75 @@ Definition sat_lex (Ax : array (array bigQ)) (b : array bigQ) (I : array int63):
 
 (*sat_lex Ax b I verifies that AX >=lex b and (AX)_I == b_I*)
 
-Definition sign (x : int63):= if Uint63.is_even x then 1%bigQ else (-1)%bigQ.
-
 Definition update 
   (b : array bigQ)
   (I : array int63) (r s : int63)
-  (M B : array (array bigQ)) (x : array bigQ):=
+  (x : array bigQ) (B M : array (array bigQ)):=
   let M' := make (length M) (make (length M.[0]) 0%bigQ) in
   let B' := make (length B) (make (length B.[0]) 0%bigQ) in
   let Ms := M.[Uint63.succ I.[s]] in
   let Mrs := Ms.[r] in
   let Bs := B.[I.[s]] in
   let Brs := Bs.[r] in
-  let x' := BigQUtils.bigQ_add_arr x (BigQUtils.bigQ_scal_norm_arr ((b.[r] - M.[0%uint63].[r])/Mrs)%bigQ Bs) in
-  let M' := M'.[0 <- BigQUtils.bigQ_add_arr M.[0] (BigQUtils.bigQ_scal_norm_arr (b.[r] - M.[0%uint63].[r]/Mrs)%bigQ Ms)] in
-  let B' := B'.[r <- BigQUtils.bigQ_scal_norm_arr (1/Mrs) Bs] in
-  let M' := M'.[r <- BigQUtils.bigQ_scal_norm_arr (1/Mrs) Ms] in
+  let x' := BigQUtils.bigQ_add_arr x (BigQUtils.bigQ_scal_norm_arr ((M.[0%uint63].[r] - b.[r])/Mrs)%bigQ Bs) in
+  let M' := M'.[0 <- BigQUtils.bigQ_add_arr M.[0] (BigQUtils.bigQ_scal_norm_arr ((b.[r] - M.[0%uint63].[r])/Mrs)%bigQ Ms)] in
+  let B' := B'.[r <- BigQUtils.bigQ_scal_norm_arr (-1/Mrs) Bs] in
+  let M' := M'.[Uint63.succ r <- BigQUtils.bigQ_scal_norm_arr (- 1/Mrs) Ms] in
   let: (B', M') := IFold.ifold (fun k '(B',M')=>
-    if (I.[k] =? s)%uint63 then (B',M') else
-    let B'k := BigQUtils.bigQ_add_arr (BigQUtils.bigQ_scal_arr Mrs B.[k]) (BigQUtils.bigQ_scal_arr M.[Uint63.succ I.[k]].[r] Bs) in
+    if (k =? s)%uint63 then (B',M') else
+    let B'k := BigQUtils.bigQ_add_arr (BigQUtils.bigQ_scal_arr Mrs B.[I.[k]]) (BigQUtils.bigQ_scal_arr (-M.[Uint63.succ I.[k]].[r])%bigQ Bs) in
     let B' := B'.[I.[k] <- BigQUtils.bigQ_scal_norm_arr (1/Mrs)%bigQ B'k] in
-    let M'k := BigQUtils.bigQ_add_arr (BigQUtils.bigQ_scal_arr Mrs M.[Uint63.succ k]) (BigQUtils.bigQ_scal_arr M.[Uint63.succ I.[k]].[r] Ms) in
+    let M'k := BigQUtils.bigQ_add_arr (BigQUtils.bigQ_scal_arr (Mrs)%bigQ M.[Uint63.succ I.[k]]) (BigQUtils.bigQ_scal_arr (- M.[Uint63.succ I.[k]].[r])%bigQ Ms) in
     let M' := M'.[Uint63.succ I.[k] <- BigQUtils.bigQ_scal_norm_arr (1/Mrs)%bigQ M'k] in
     (B',M')
     ) (length I) (B',M') in
   (x', B', M').
 
+Definition explore 
+  (b : array bigQ)
+  (certif_bases : array (array int63))
+  (certif_pred : array (int63 * int63 * int63))
+  (main : array (option (array bigQ * array (array bigQ) * array (array bigQ))))
+  (order : array int63):=
+  PArrayUtils.fold (fun i main=>
+    let '(idx,r,s) := certif_pred.[i] in
+    let I := certif_bases.[idx] in
+    if main.[idx] is Some (x, B, M) then
+    let '(x',B',M'):= update b I r s x B M in
+    if sat_lex M' b certif_bases.[i] then main.[i <- Some(x',B',M')] else main
+    else main
+  ) order main.
 
+Definition initial
+  (A : array (array bigQ)) (b : array bigQ)
+  (certif_bases : array (array int63))
+  (idx : int63) (x : array bigQ) (inv : array (array bigQ)):=
+  let I := certif_bases.[idx] in
+  let M := make (Uint63.succ (length A)) (make (length A) 0%bigQ) in
+  let B := make (length A) (make (length A) 0%bigQ) in
+  let M := M.[0 <- BigQUtils.bigQ_mul_mx_col A x] in
+  let '(B,M) := IFold.ifold (fun i '(B,M)=>
+    let B := B.[I.[i] <- inv.[i]] in
+    let M := M.[Uint63.succ I.[i] <- BigQUtils.bigQ_scal_arr (-1)%bigQ (BigQUtils.bigQ_mul_mx_col A inv.[i])] in
+    (B,M)
+  ) (length I) (B,M) in
+  let main := make (length certif_bases) None in
+  if sat_lex M b I then main.[idx <- Some (x,B,M)] else main.
 
+Definition explore_from_initial
+  A b certif_bases certif_pred idx x inv order:=
+  explore b certif_bases certif_pred (initial A b certif_bases idx x inv) order.
 
+Definition vertex_certif 
+  (A : array (array bigQ)) (b : array bigQ)
+  (certif_bases : array (array int63))
+  (certif_pred : array (int63 * int63 * int63))
+  (idx : int63) (x : array bigQ) (inv : array (array bigQ))
+  (order : array int63):=
+  PArrayUtils.all isSome (explore_from_initial A b certif_bases certif_pred idx x inv order).
 
 End Rank1Certif.
+
+Module R1 := Rank1Certif.
 
 (* ---------------------------------------------------------------------------- *)
