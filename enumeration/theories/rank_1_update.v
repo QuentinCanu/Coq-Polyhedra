@@ -61,7 +61,7 @@ Definition update
   let M' := M'.[0 <- BigQUtils.bigQ_add_arr M.[0] (BigQUtils.bigQ_scal_norm_arr ((b.[r] - M.[0%uint63].[r])/Mrs)%bigQ Ms)] in
   let B' := B'.[r <- BigQUtils.bigQ_scal_norm_arr (-1/Mrs) Bs] in
   let M' := M'.[Uint63.succ r <- BigQUtils.bigQ_scal_norm_arr (- 1/Mrs) Ms] in
-  let: (B', M') := IFold.ifold (fun k '(B',M')=>
+  let (B', M') := IFold.ifold (fun k '(B',M')=>
     if (k =? s)%uint63 then (B',M') else
     let B'k := BigQUtils.bigQ_add_arr (BigQUtils.bigQ_scal_arr Mrs B.[I.[k]]) (BigQUtils.bigQ_scal_arr (-M.[Uint63.succ I.[k]].[r])%bigQ Bs) in
     let B' := B'.[I.[k] <- BigQUtils.bigQ_scal_norm_arr (1/Mrs)%bigQ B'k] in
@@ -74,11 +74,12 @@ Definition update
 Definition explore 
   (b : array bigQ)
   (certif_bases : array (array int63))
-  (certif_pred : array (int63 * int63 * int63))
+  (certif_pred : array (int63 * (int63 * int63)))
   (main : array (option (array bigQ * array (array bigQ) * array (array bigQ))))
   (order : array int63):=
   PArrayUtils.fold (fun i main=>
-    let '(idx,r,s) := certif_pred.[i] in
+    let (idx,rs) := certif_pred.[i] in
+    let (r,s) := rs in
     let I := certif_bases.[idx] in
     if main.[idx] is Some (x, B, M) then
     let '(x',B',M'):= update b I r s x B M in
@@ -109,7 +110,7 @@ Definition explore_from_initial
 Definition vertex_certif 
   (A : array (array bigQ)) (b : array bigQ)
   (certif_bases : array (array int63))
-  (certif_pred : array (int63 * int63 * int63))
+  (certif_pred : array (int63 * (int63 * int63)))
   (idx : int63) (x : array bigQ) (inv : array (array bigQ))
   (order : array int63):=
   PArrayUtils.all isSome (explore_from_initial A b certif_bases certif_pred idx x inv order).
