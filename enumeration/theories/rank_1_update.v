@@ -95,17 +95,22 @@ Definition initial
   let M := make (Uint63.succ (length A)) (make (length A) 0%bigQ) in
   let B := make (length A) (make (length A) 0%bigQ) in
   let M := M.[0 <- BigQUtils.bigQ_mul_mx_col A x] in
-  let '(B,M) := IFold.ifold (fun i '(B,M)=>
+  IFold.ifold (fun i '(B,M)=>
     let B := B.[I.[i] <- inv.[i]] in
-    let M := M.[Uint63.succ I.[i] <- BigQUtils.bigQ_scal_arr (-1)%bigQ (BigQUtils.bigQ_mul_mx_col A inv.[i])] in
-    (B,M)
-  ) (length I) (B,M) in
+    let M := M.[Uint63.succ I.[i] <- BigQUtils.bigQ_scal_arr (-1)%bigQ (BigQUtils.bigQ_mul_mx_col A inv.[i])] in (B,M)) 
+  (length I) (B,M).
+  
+Definition initial_main 
+  (A : array (array bigQ)) (b : array bigQ)
+  (certif_bases : array (array int63))
+  (idx : int63) (x : array bigQ) (inv : array (array bigQ)):=
   let main := make (length certif_bases) None in
-  if sat_lex M b I then main.[idx <- Some (x,B,M)] else main.
+  let (B,M) := initial A b certif_bases idx x inv in
+  if sat_lex M b (certif_bases.[idx]) then main.[idx <- Some (x,B,M)] else main.
 
 Definition explore_from_initial
   A b certif_bases certif_pred idx x inv order:=
-  explore b certif_bases certif_pred (initial A b certif_bases idx x inv) order.
+  explore b certif_bases certif_pred (initial_main A b certif_bases idx x inv) order.
 
 Definition vertex_certif 
   (A : array (array bigQ)) (b : array bigQ)
