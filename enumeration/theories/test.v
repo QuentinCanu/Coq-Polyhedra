@@ -44,16 +44,22 @@ Definition inv := [|
 |[|0|0|]|]%bigQ.
 
 Definition certif_pred :=[|
-  (0,0,0);
-  (0,2,1);
-  (0,3,0);
-  (2,2,0)
-  |(0,0,0)|]%uint63.
+  (0,(0,0));
+  (0,(2,1));
+  (0,(3,0));
+  (2,(2,0))
+  |(0,(0,0))|]%uint63.
 
 Definition order := [|1;2;3|0|]%uint63.
 
+(* Definition init := 
+  Eval vm_compute in (R1.initial A b certif_bases idx x inv). *)
+(* Print init.
+
+Compute R1.update b certif_bases.[idx] 2 1 x init.1 init.2.
+Compute R1.explore_from_initial A b certif_bases certif_pred idx x inv order.
 Compute R1.vertex_certif A b certif_bases certif_pred idx x inv order.
-End Cross2.
+End Cross2. *)
 
 Module Cube3.
 
@@ -88,15 +94,15 @@ Definition inv := [|
 |[|0|0|]|]%bigQ.
 
 Definition certif_pred :=[|
-(0,0,0);
-(0,5,2);
-(3,2,2);
-(1,4,1);
-(6,1,2);
-(4,5,1);
-(2,3,0);
-(5,4,0)
-|(0,0,0)|]%uint63.
+(0,(0,0));
+(0,(5,2));
+(3,(2,2));
+(1,(4,1));
+(6,(1,2));
+(4,(5,1));
+(2,(3,0));
+(5,(4,0))
+|(0,(0,0))|]%uint63.
 
 Definition order := [|1;3;2;6;4;5;7|0|]%uint63.
 

@@ -19,6 +19,34 @@ Local Notation int63 := Uint63.int.
 
 Module Rank1Certif.
 
+Definition scal_col (x : array (array bigQ)) (i : int63) (a : bigQ):=
+  x.[i <- 
+  IFold.ifold (fun k c=> c.[k <- (a * c.[k])%bigQ]) 
+  (length x.[i]) x.[i]].
+
+Definition lin_col 
+  (x : array (array bigQ)) (i j : int63) (ai aj : bigQ):=
+  x.[i <- 
+    IFold.ifold (fun k c=> c.[k <- (ai * c.[k] + aj * x.[j].[k])%bigQ])
+    (length x.[i]) x.[i]].
+
+Definition col0
+  (x : array (array bigQ)) (i : int63):=
+  x.[i <- IFold.ifold (fun k c=> c.[k <- 0%bigQ]) (length x.[i]) x.[i]].
+
+Definition swap
+  {T : Type}
+  (x : array (array T)) (i j : int63):=
+  let temp := copy x.[j] in
+  x.[i <- temp].[j <- x.[i]].
+
+Definition test := make 4 (make 1 0%bigQ).
+Definition test2 := test.[1 <- (make 2 1%bigQ)].
+Definition test3 := test.[2 <- (make 3 2%bigQ)].
+Definition test_final := Eval vm_compute in swap test3 1 2.
+Print test_final.
+
+(* ------------------------------------------------------------------ *)
 Definition sat_pert (Ax : (array bigQ)) (m : int63) (cmp : array comparison):=
   IFold.ifold (fun i cmp=>
     if cmp.[i] is Eq then 
@@ -47,29 +75,31 @@ Definition sat_lex (Ax : array (array bigQ)) (b : array bigQ) (I : array int63):
 
 (*sat_lex Ax b I verifies that AX >=lex b and (AX)_I == b_I*)
 
+(* ------------------------------------------------------------------ *)
+
 Definition update 
   (b : array bigQ)
   (I : array int63) (r s : int63)
   (x : array bigQ) (B M : array (array bigQ)):=
-  let M' := make (length M) (make (length M.[0]) 0%bigQ) in
-  let B' := make (length B) (make (length B.[0]) 0%bigQ) in
-  let Ms := M.[Uint63.succ I.[s]] in
+  (* let M' := make (length M) (make (length M.[0]) 0%bigQ) in
+  let B' := make (length B) (make (length B.[0]) 0%bigQ) in *)
+  let Is := I.[s] in
+  let Ms := M.[Uint63.succ Is] in
   let Mrs := Ms.[r] in
-  let Bs := B.[I.[s]] in
-  let Brs := Bs.[r] in
-  let x' := BigQUtils.bigQ_add_arr x (BigQUtils.bigQ_scal_norm_arr ((M.[0%uint63].[r] - b.[r])/Mrs)%bigQ Bs) in
-  let M' := M'.[0 <- BigQUtils.bigQ_add_arr M.[0] (BigQUtils.bigQ_scal_norm_arr ((b.[r] - M.[0%uint63].[r])/Mrs)%bigQ Ms)] in
-  let B' := B'.[r <- BigQUtils.bigQ_scal_norm_arr (-1/Mrs) Bs] in
-  let M' := M'.[Uint63.succ r <- BigQUtils.bigQ_scal_norm_arr (- 1/Mrs) Ms] in
-  let (B', M') := IFold.ifold (fun k '(B',M')=>
+  let Bs := B.[Is] in
+  let x' := BigQUtils.bigQ_add_arr x (BigQUtils.bigQ_scal_arr ((M.[0%uint63].[r] - b.[r])/Mrs)%bigQ Bs) in
+  let M := M.[0 <- BigQUtils.bigQ_add_arr M.[0] (BigQUtils.bigQ_scal_arr ((b.[r] - M.[0%uint63].[r])/Mrs)%bigQ Ms)] in
+  let (B, M) := IFold.ifold (fun k '(B',M')=>
     if (k =? s)%uint63 then (B',M') else
-    let B'k := BigQUtils.bigQ_add_arr (BigQUtils.bigQ_scal_arr Mrs B.[I.[k]]) (BigQUtils.bigQ_scal_arr (-M.[Uint63.succ I.[k]].[r])%bigQ Bs) in
-    let B' := B'.[I.[k] <- BigQUtils.bigQ_scal_norm_arr (1/Mrs)%bigQ B'k] in
-    let M'k := BigQUtils.bigQ_add_arr (BigQUtils.bigQ_scal_arr (Mrs)%bigQ M.[Uint63.succ I.[k]]) (BigQUtils.bigQ_scal_arr (- M.[Uint63.succ I.[k]].[r])%bigQ Ms) in
-    let M' := M'.[Uint63.succ I.[k] <- BigQUtils.bigQ_scal_norm_arr (1/Mrs)%bigQ M'k] in
+    let Ik := I.[k] in
+    let B' := lin_col B' Ik Is 1%bigQ (- M'.[Uint63.succ Ik].[r]/Mrs)%bigQ in
+    let M' := lin_col M' (Uint63.succ Ik) (Uint63.succ Is) 1%bigQ (-M'.[Uint63.succ Ik].[r]/Mrs)%bigQ in
     (B',M')
-    ) (length I) (B',M') in
-  (x', B', M').
+    ) (length I) (B,M) in
+    let B := scal_col B.[r <- B.[Is]] r (-1/Mrs)%bigQ in
+    let M := scal_col M.[Uint63.succ r <- M.[Uint63.succ Is]] (Uint63.succ r) (-1/Mrs) in
+    let B := col0 B Is in let M := col0 M (Uint63.succ Is) in
+  (x', B, M).
 
 Definition explore 
   (b : array bigQ)
