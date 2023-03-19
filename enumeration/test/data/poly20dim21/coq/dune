@@ -1,0 +1,8 @@
+(coq.theory
+ (name POLY20DIM21_DATA)
+ (theories Polyhedra PolyhedraHirsch)
+ (flags -w -ambiguous-paths
+        -w -notation-overridden
+        -w -redundant-canonical-projection
+        -w -projection-no-head-constant))
+ (include_subdirs qualified)
