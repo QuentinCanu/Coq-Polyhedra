@@ -34,18 +34,6 @@ Definition col0
   (x : array (array bigQ)) (i : int63):=
   x.[i <- IFold.ifold (fun k c=> c.[k <- 0%bigQ]) (length x.[i]) x.[i]].
 
-Definition swap
-  {T : Type}
-  (x : array (array T)) (i j : int63):=
-  let temp := copy x.[j] in
-  x.[i <- temp].[j <- x.[i]].
-
-Definition test := make 4 (make 1 0%bigQ).
-Definition test2 := test.[1 <- (make 2 1%bigQ)].
-Definition test3 := test.[2 <- (make 3 2%bigQ)].
-Definition test_final := Eval vm_compute in swap test3 1 2.
-Print test_final.
-
 (* ------------------------------------------------------------------ *)
 Definition sat_pert (Ax : (array bigQ)) (m : int63) (cmp : array comparison):=
   IFold.ifold (fun i cmp=>
@@ -81,14 +69,15 @@ Definition update
   (b : array bigQ)
   (I : array int63) (r s : int63)
   (x : array bigQ) (B M : array (array bigQ)):=
-  (* let M' := make (length M) (make (length M.[0]) 0%bigQ) in
-  let B' := make (length B) (make (length B.[0]) 0%bigQ) in *)
   let Is := I.[s] in
   let Ms := M.[Uint63.succ Is] in
   let Mrs := Ms.[r] in
   let Bs := B.[Is] in
-  let x' := BigQUtils.bigQ_add_arr x (BigQUtils.bigQ_scal_arr ((M.[0%uint63].[r] - b.[r])/Mrs)%bigQ Bs) in
-  let M := M.[0 <- BigQUtils.bigQ_add_arr M.[0] (BigQUtils.bigQ_scal_arr ((b.[r] - M.[0%uint63].[r])/Mrs)%bigQ Ms)] in
+  let x := IFold.ifold 
+    (fun k c=> c.[k <- (c.[k] + ((M.[0].[r] - b.[r])/Mrs) * Bs.[k])%bigQ]) (length x) x in
+  let M := M.[0 <- IFold.ifold (fun k c=>
+    c.[k <- (c.[k] + ((b.[r] - M.[0].[r])/Mrs) * Ms.[k])%bigQ])
+  (length M.[0]) M.[0]] in
   let (B, M) := IFold.ifold (fun k '(B',M')=>
     if (k =? s)%uint63 then (B',M') else
     let Ik := I.[k] in
@@ -99,7 +88,7 @@ Definition update
     let B := scal_col B.[r <- B.[Is]] r (-1/Mrs)%bigQ in
     let M := scal_col M.[Uint63.succ r <- M.[Uint63.succ Is]] (Uint63.succ r) (-1/Mrs) in
     let B := col0 B Is in let M := col0 M (Uint63.succ Is) in
-  (x', B, M).
+  (x, B, M).
 
 Definition explore 
   (b : array bigQ)
@@ -113,7 +102,7 @@ Definition explore
     let I := certif_bases.[idx] in
     if main.[idx] is Some (x, B, M) then
     let '(x',B',M'):= update b I r s x B M in
-    if sat_lex M' b certif_bases.[i] then main.[i <- Some(x',B',M')] else main
+    if sat_lex M' b certif_bases.[i] then main.[i <- Some(copy x', copy B', copy M')] else main
     else main
   ) order main.
 

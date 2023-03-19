@@ -52,14 +52,8 @@ Definition certif_pred :=[|
 
 Definition order := [|1;2;3|0|]%uint63.
 
-(* Definition init := 
-  Eval vm_compute in (R1.initial A b certif_bases idx x inv). *)
-(* Print init.
-
-Compute R1.update b certif_bases.[idx] 2 1 x init.1 init.2.
-Compute R1.explore_from_initial A b certif_bases certif_pred idx x inv order.
-Compute R1.vertex_certif A b certif_bases certif_pred idx x inv order.
-End Cross2. *)
+(* Compute R1.vertex_certif A b certif_bases certif_pred idx x inv order. *)
+End Cross2.
 
 Module Cube3.
 
@@ -106,20 +100,9 @@ Definition certif_pred :=[|
 
 Definition order := [|1;3;2;6;4;5;7|0|]%uint63.
 
-Compute R1.explore_from_initial A b certif_bases certif_pred idx x inv order.
-Compute R1.vertex_certif A b certif_bases certif_pred idx x inv order.
+(* Compute R1.explore_from_initial A b certif_bases certif_pred idx x inv order.
+Compute R1.vertex_certif A b certif_bases certif_pred idx x inv order. *)
 
 
 End Cube3.
-
-(* Definition test := Eval compute in R1.explore b certif_bases certif_pred (R1.initial A b certif_bases idx x inv) order.
-Definition triplet := match test.[2] with |Some X => X |None=> (x,A,A) end.
-Definition x2 := Eval compute in triplet.1.1.
-Definition B2 := Eval compute in triplet.1.2.
-Definition M2 := Eval compute in triplet.2.
-
-
-Print test.
-Definition res:= R1.update b certif_bases.[2] 2 0 x2 B2 M2.
-Compute res. *)
 
