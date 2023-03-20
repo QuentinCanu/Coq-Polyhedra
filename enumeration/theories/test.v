@@ -52,7 +52,7 @@ Definition certif_pred :=[|
 
 Definition order := [|1;2;3|0|]%uint63.
 
-(* Compute R1.vertex_certif A b certif_bases certif_pred idx x inv order. *)
+Compute R1.vertex_certif A b certif_bases certif_pred idx x inv order.
 End Cross2.
 
 Module Cube3.
@@ -100,9 +100,11 @@ Definition certif_pred :=[|
 
 Definition order := [|1;3;2;6;4;5;7|0|]%uint63.
 
-(* Compute R1.explore_from_initial A b certif_bases certif_pred idx x inv order.
-Compute R1.vertex_certif A b certif_bases certif_pred idx x inv order. *)
-
+(* Time Definition main := R1.explore_from_initial A b certif_bases certif_pred idx x inv order.
+Time Definition test := R1.vertex_certif A b certif_bases certif_pred idx x inv order. *)
 
 End Cube3.
 
+(* From Coq Require Import ExtrOCamlInt63 ExtrOCamlPArray ExtrOcamlBasic ExtrOcamlNatInt Extraction.
+
+Extraction "cube" Cube3.main. *)
