@@ -2,7 +2,7 @@ Require Import PArray Uint63.
 From Bignums Require Import BigQ.
 From mathcomp Require Import all_ssreflect all_algebra.
 From Polyhedra Require Import extra_misc inner_product vector_order.
-Require Import graph extra_array extra_int array_set rat_bigQ diameter img_graph refinement.
+Require Import graph extra_array extra_int array_set rat_bigQ diameter img_graph refinement enum_algo.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -33,6 +33,9 @@ Definition lin_col
 Definition col0
   (x : array (array bigQ)) (i : int63):=
   x.[i <- IFold.ifold (fun k c=> c.[k <- 0%bigQ]) (length x.[i]) x.[i]].
+
+Definition deep_copy {T : Type} (M : array (array T)):=
+  PArrayUtils.mk_fun (fun i=> copy M.[i]) (length M) (default M). 
 
 (* ------------------------------------------------------------------ *)
 Definition sat_pert (Ax : (array bigQ)) (m : int63) (cmp : array comparison):=
@@ -101,8 +104,9 @@ Definition explore
     let (r,s) := rs in
     let I := certif_bases.[idx] in
     if main.[idx] is Some (x, B, M) then
-    let '(x',B',M'):= update b I r s x B M in
-    if sat_lex M' b certif_bases.[i] then main.[i <- Some(copy x', copy B', copy M')] else main
+    let '(x',B',M') := (copy x, deep_copy B, deep_copy M) in
+    let '(x'',B'',M''):= update b I r s x' B' M' in
+    if sat_lex M'' b certif_bases.[i] then main.[i <- Some(x'', B'', M'')] else main
     else main
   ) order main.
 
@@ -138,6 +142,23 @@ Definition vertex_certif
   (idx : int63) (x : array bigQ) (inv : array (array bigQ))
   (order : array int63):=
   PArrayUtils.all isSome (explore_from_initial A b certif_bases certif_pred idx x inv order).
+
+Definition make_basing_point (x : array bigQ) (B : array (array bigQ)):=
+  let X := make (Uint63.succ (length B)) (make (length x) 0%bigQ) in
+  let X := X.[0 <- x] in
+  IFold.ifold (fun i acc=>
+    acc.[Uint63.succ i <- B.[i]]
+  ) (length B) X.
+
+Definition bench_old (A : array (array bigQ))
+  (main : array (option (array bigQ * array (array bigQ) * array (array bigQ)))):=
+  let res := make (length main) None in
+  IFold.ifold (fun i acc=> 
+  if main.[i] is Some (x, B, _) then
+    let X := make_basing_point x B in
+    acc.[i <- Some (PArrayUtils.map (fun v=> BigQUtils.bigQ_mul_row_mx v X) A)]
+  else acc
+  ) (length main) res.
 
 End Rank1Certif.
 
