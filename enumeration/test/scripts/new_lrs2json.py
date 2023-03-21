@@ -102,14 +102,12 @@ def get_lex_graph(bases,m, n):
 def optparser():
     parser = argp.ArgumentParser(description='Extract json data from polyhedron data')
     parser.add_argument('name', help="the name of the polyhedron to be extracted")
-    parser.add_argument('--subset', help="whether we need only a subset of explored bases", type=int, default=-1)
     return parser
 
 # -------------------------------------------------------------------
 def main():
     args   = optparser().parse_args()
     name   = args.name
-    subset = args.subset
 
     # Compute everything
     A,b = get_polyhedron_from_lrs(name)
@@ -127,7 +125,8 @@ def main():
     tgtjson['idx'] = idx
     tgtjson['x_I'] = x_I
     tgtjson['inv'] = inv
-    tgtjson['order'] = order[:subset]
+    tgtjson['order'] = order
+    tgtjson['steps'] = len(order)
     tgtjson['pred'] = pred
     tgtdir = core.resource(name)
     
