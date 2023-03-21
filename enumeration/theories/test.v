@@ -51,8 +51,9 @@ Definition certif_pred :=[|
   |(0,(0,0))|]%uint63.
 
 Definition order := [|1;2;3|0|]%uint63.
+Definition steps := length order.
 
-Compute R1.vertex_certif A b certif_bases certif_pred idx x inv order.
+Compute R1.vertex_certif A b certif_bases certif_pred idx x inv order steps.
 End Cross2.
 
 Module Cube3.
@@ -99,12 +100,33 @@ Definition certif_pred :=[|
 |(0,(0,0))|]%uint63.
 
 Definition order := [|1;3;2;6;4;5;7|0|]%uint63.
+Definition steps := length order.
 
 (* Time Definition main := R1.explore_from_initial A b certif_bases certif_pred idx x inv order.
 Time Definition test := R1.vertex_certif A b certif_bases certif_pred idx x inv order. *)
 
 End Cube3.
 
-(* From Coq Require Import ExtrOCamlInt63 ExtrOCamlPArray ExtrOcamlBasic ExtrOcamlNatInt Extraction.
+From Coq Require Import ExtrOCamlInt63 ExtrOCamlPArray ExtrOcamlBasic Extraction.
 
-Extraction "cube" Cube3.main. *)
+Extraction Language OCaml.
+Set Extraction Optimize.
+Set Extraction AutoInline.
+Set Extraction AccessOpaque.
+
+Extract    Constant PArray.array "'a" => "Parray.t".
+Extraction Inline   PArray.array.
+
+Extract Constant PArray.make    => "Parray.make".
+Extract Constant PArray.get     => "Parray.get".
+Extract Constant PArray.default => "Parray.default".
+Extract Constant PArray.set     => "Parray.set".
+Extract Constant PArray.length  => "Parray.length".
+Extract Constant PArray.copy    => "Parray.copy".
+
+Extract Inlined Constant negb => "not".
+Extract Inlined Constant fst  => "fst".
+Extract Inlined Constant snd  => "snd".
+
+Extraction "rank1" R1.vertex_certif.
+

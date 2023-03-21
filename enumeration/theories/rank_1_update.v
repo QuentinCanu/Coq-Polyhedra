@@ -98,17 +98,17 @@ Definition explore
   (certif_bases : array (array int63))
   (certif_pred : array (int63 * (int63 * int63)))
   (main : array (option (array bigQ * array (array bigQ) * array (array bigQ))))
-  (order : array int63):=
-  PArrayUtils.fold (fun i main=>
-    let (idx,rs) := certif_pred.[i] in
+  (order : array int63) (steps : int63):=
+  IFold.ifold (fun i main=>
+    let (idx,rs) := certif_pred.[order.[i]] in
     let (r,s) := rs in
     let I := certif_bases.[idx] in
     if main.[idx] is Some (x, B, M) then
     let '(x',B',M') := (copy x, deep_copy B, deep_copy M) in
     let '(x'',B'',M''):= update b I r s x' B' M' in
-    if sat_lex M'' b certif_bases.[i] then main.[i <- Some(x'', B'', M'')] else main
+    if sat_lex M'' b certif_bases.[order.[i]] then main.[order.[i] <- Some(x'', B'', M'')] else main
     else main
-  ) order main.
+  ) steps main.
 
 Definition initial
   (A : array (array bigQ)) (b : array bigQ)
@@ -132,16 +132,16 @@ Definition initial_main
   if sat_lex M b (certif_bases.[idx]) then main.[idx <- Some (x,B,M)] else main.
 
 Definition explore_from_initial
-  A b certif_bases certif_pred idx x inv order:=
-  explore b certif_bases certif_pred (initial_main A b certif_bases idx x inv) order.
+  A b certif_bases certif_pred idx x inv order steps:=
+  explore b certif_bases certif_pred (initial_main A b certif_bases idx x inv) order steps.
 
 Definition vertex_certif 
   (A : array (array bigQ)) (b : array bigQ)
   (certif_bases : array (array int63))
   (certif_pred : array (int63 * (int63 * int63)))
   (idx : int63) (x : array bigQ) (inv : array (array bigQ))
-  (order : array int63):=
-  PArrayUtils.all isSome (explore_from_initial A b certif_bases certif_pred idx x inv order).
+  (order : array int63) steps:=
+  PArrayUtils.all isSome (explore_from_initial A b certif_bases certif_pred idx x inv order steps).
 
 Definition make_basing_point (x : array bigQ) (B : array (array bigQ)):=
   let X := make (Uint63.succ (length B)) (make (length x) 0%bigQ) in
