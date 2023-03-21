@@ -53,7 +53,10 @@ Definition certif_pred :=[|
 Definition order := [|1;2;3|0|]%uint63.
 Definition steps := length order.
 
-Compute R1.vertex_certif A b certif_bases certif_pred idx x inv order steps.
+(* Definition main := Eval vm_compute in R1.explore_from_initial A b certif_bases certif_pred idx x inv order steps.
+Definition arr := Eval vm_compute in R1.array_to_test main certif_bases.
+Compute R1.bench_old A arr.
+Compute R1.bench_old2 A b arr. *)
 End Cross2.
 
 Module Cube3.
@@ -107,7 +110,7 @@ Time Definition test := R1.vertex_certif A b certif_bases certif_pred idx x inv 
 
 End Cube3.
 
-From Coq Require Import ExtrOCamlInt63 ExtrOCamlPArray ExtrOcamlBasic Extraction.
+(* From Coq Require Import ExtrOCamlInt63 ExtrOCamlPArray ExtrOcamlBasic Extraction.
 
 Extraction Language OCaml.
 Set Extraction Optimize.
@@ -128,5 +131,5 @@ Extract Inlined Constant negb => "not".
 Extract Inlined Constant fst  => "fst".
 Extract Inlined Constant snd  => "snd".
 
-Extraction "rank1" R1.vertex_certif.
+Extraction "rank1" R1.vertex_certif. *)
 
