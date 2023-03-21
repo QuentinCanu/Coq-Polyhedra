@@ -147,18 +147,35 @@ Definition make_basing_point (x : array bigQ) (B : array (array bigQ)):=
   let X := make (Uint63.succ (length B)) (make (length x) 0%bigQ) in
   let X := X.[0 <- x] in
   IFold.ifold (fun i acc=>
-    acc.[Uint63.succ i <- B.[i]]
+    acc.[Uint63.succ i <- BigQUtils.bigQ_scal_arr (-1)%bigQ B.[i]]
   ) (length B) X.
 
-Definition bench_old (A : array (array bigQ))
-  (main : array (option (array bigQ * array (array bigQ) * array (array bigQ)))):=
+Definition array_to_test (main : array (option (array bigQ * array (array bigQ) * array (array bigQ))))
+  (certif_bases : array (array int63)):=
   let res := make (length main) None in
   IFold.ifold (fun i acc=> 
   if main.[i] is Some (x, B, _) then
-    let X := make_basing_point x B in
-    acc.[i <- Some (PArrayUtils.map (fun v=> BigQUtils.bigQ_mul_row_mx v X) A)]
+    acc.[i <- Some (certif_bases.[i], make_basing_point x B)]
   else acc
   ) (length main) res.
+
+
+Definition bench_old (A : array (array bigQ)) (arr : array (option (array int63 * array (array bigQ)))):=
+  let res := make (length arr) None in
+  IFold.ifold (fun i acc=> 
+  if arr.[i] is Some (_, X) then
+    acc.[i <- Some (PArrayUtils.map (fun v=> BigQUtils.bigQ_mul_row_mx v X) A)]
+  else acc
+  ) (length arr) res.
+
+Definition bench_old2 (A : array (array bigQ)) (b : array bigQ) (arr : array (option (array int63 * array (array bigQ)))):=
+  let Po := (A,b) in
+  let res := make (length arr) None in
+  IFold.ifold (fun i acc=>
+  if arr.[i] is Some p then
+    acc.[i <- Some ((LCA.sat_Po Po p.2) && (LCA.mask_eq Po p.1 p.2))]
+  else acc
+  ) (length arr) res.
 
 End Rank1Certif.
 
