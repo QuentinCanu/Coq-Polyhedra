@@ -58,9 +58,12 @@ Definition sat_lex (Ax : array (array bigQ)) (b : array bigQ) (I : array int63):
   (IFold.ifold (fun i '(test,k)=> 
     if test then
       if (i =? I.[k])%uint63 then 
-        if cmp.[i] is Eq then (true,Uint63.succ k) else (false,k)
+        match cmp.[i] with 
+          |Eq => (true,Uint63.succ k)
+          |_ => (false,k)
+          end
       else 
-        if cmp.[i] is Lt then (false, k) else (true, k)
+        match cmp.[i] with | Lt => (false, k) |_ => (true, k) end
     else (test,k)
     ) (length cmp) (true, 0%uint63)).1.
 
@@ -115,8 +118,8 @@ Definition initial
   (certif_bases : array (array int63))
   (idx : int63) (x : array bigQ) (inv : array (array bigQ)):=
   let I := certif_bases.[idx] in
-  let M := make (Uint63.succ (length A)) (make (length A) 0%bigQ) in
-  let B := make (length A) (make (length A) 0%bigQ) in
+  let M := PArrayUtils.mk_fun (fun _ => make (length A) 0%bigQ) (Uint63.succ (length A)) (make (length A) 0%bigQ) in
+  let B := PArrayUtils.mk_fun (fun _ => make (length A) 0%bigQ) (length A) (make (length A) 0%bigQ) in
   let M := M.[0 <- BigQUtils.bigQ_mul_mx_col A x] in
   IFold.ifold (fun i '(B,M)=>
     let B := B.[I.[i] <- inv.[i]] in
