@@ -79,22 +79,22 @@ case: x; case: y=> //=.
 - move=> q p; rewrite BinInt.Z.pos_sub_spec.
   case: BinPos.Pos.compare_spec=> /=.
   + move=> ->; by rewrite GRing.addrN.
-  + move=> /[dup] /Pnat.Pos2Nat.inj_lt + /Pnat.Pos2Nat.inj_sub ->. 
+  + move=> /[dup] /Pnat.Pos2Nat.inj_lt + /Pnat.Pos2Nat.inj_sub ->.
     rewrite !minusE=> /ssrnat.ltP pq.
     rewrite -subzn; last exact: ltnW.
     by rewrite GRing.opprB.
-  + move=> /[dup] /Pnat.Pos2Nat.inj_lt + /Pnat.Pos2Nat.inj_sub ->. 
+  + move=> /[dup] /Pnat.Pos2Nat.inj_lt + /Pnat.Pos2Nat.inj_sub ->.
     rewrite !minusE=> /ssrnat.ltP pq.
     by rewrite -subzn; last exact: ltnW.
 - by move=> ?; rewrite GRing.addr0.
 - move=> q p; rewrite BinInt.Z.pos_sub_spec.
   case: BinPos.Pos.compare_spec=> /=.
   + by move=> ->; rewrite GRing.addNr //.
-  + move=> /[dup] /Pnat.Pos2Nat.inj_lt + /Pnat.Pos2Nat.inj_sub ->. 
+  + move=> /[dup] /Pnat.Pos2Nat.inj_lt + /Pnat.Pos2Nat.inj_sub ->.
     rewrite !minusE=> /ssrnat.ltP pq.
     rewrite -subzn ?GRing.opprB; last exact: ltnW.
     by rewrite GRing.addrC.
-  + move=> /[dup] /Pnat.Pos2Nat.inj_lt /ssrnat.ltP pq /Pnat.Pos2Nat.inj_sub ->. 
+  + move=> /[dup] /Pnat.Pos2Nat.inj_lt /ssrnat.ltP pq /Pnat.Pos2Nat.inj_sub ->.
     rewrite -subzn; last exact: ltnW.
     by rewrite GRing.addrC.
 - move=> p q; rewrite Pnat.Pos2Nat.inj_add plusE PoszD.
@@ -159,7 +159,7 @@ rewrite /Z2int; case Ex: x; case Ey: y=> //.
   by rewrite -!Znat.positive_nat_Z -Znat.Nat2Z.inj_le; split => /ssrnat.leP. }
 { split; move=> H; exfalso; move: H; [|by rewrite /BinInt.Z.le].
   apply /negP; rewrite -ltNge.
-  apply: (@lt_trans _ _ 0%R); rewrite ?Num.Theory.oppr_lt0; 
+  apply: (@lt_trans _ _ 0%R); rewrite ?Num.Theory.oppr_lt0;
     apply/ssrnat.ltP/Pos2Nat.is_pos. }
 { rewrite Num.Theory.oppr_le0; split; by rewrite /BinInt.Z.le. }
 { split=>_; [by rewrite /BinInt.Z.le|].
@@ -193,7 +193,7 @@ Proof.
 by case: n => //= n; rewrite Pos.of_nat_succ Nat2Pos.id.
 Qed.
 
-Lemma dvdnP m n : reflect 
+Lemma dvdnP m n : reflect
   (BinInt.Z.divide (BinInt.Z.of_nat m) (BinInt.Z.of_nat n)) (m %| n).
 Proof.
 apply: (iffP idP) => H.
@@ -212,7 +212,7 @@ apply: (iffP idP) => H.
   - rewrite -Hq; exact: Zorder.Zle_0_nat. }
 Qed.
 
-Lemma ZgcdE n d : BinInt.Z.gcd n (Zpos d) = 
+Lemma ZgcdE n d : BinInt.Z.gcd n (Zpos d) =
   BinInt.Z.of_nat (div.gcdn `|Z2int n| (Pos.to_nat d)).
 Proof.
 apply: BinInt.Z.gcd_unique.
@@ -243,7 +243,7 @@ Qed.
 
 Lemma Z_ggcd_1_r n : BinInt.Z.ggcd n (Zpos 1) = (Zpos 1, (n, Zpos 1)).
 Proof.
-move: (BinInt.Z.ggcd_gcd n (Zpos 1)) (BinInt.Z.ggcd_correct_divisors n (Zpos 1)). 
+move: (BinInt.Z.ggcd_gcd n (Zpos 1)) (BinInt.Z.ggcd_correct_divisors n (Zpos 1)).
 rewrite BinInt.Z.gcd_1_r.
 case (BinInt.Z.ggcd _ _)=> g ab /= ->; case ab=> a b [].
 by rewrite !BinInt.Z.mul_1_l => <- <-.
@@ -279,7 +279,7 @@ rewrite Z2int_Z_of_nat /=.
 Qed.
 
 Lemma Z2int_Zpos_neq0 x: Z2int (Zpos x) != 0%R.
-Proof. 
+Proof.
 rewrite /=; apply/negP=> /eqP; case=> E.
 by move/ssrnat.ltP: (Pos2Nat.is_pos x); rewrite E.
 Qed.
@@ -288,9 +288,8 @@ End Z2Int.
 
 Section BigQRat.
 
-
 Definition bigQ2rat_def (bq : bigQ) :=
-  let q := Qreduction.Qred [bq]%bigQ in
+  let q := Qreduction.Qred (BigQ.to_Q bq) in
   ((Z2int (QArith_base.Qnum q))%:Q / (Z2int (Zpos (QArith_base.Qden q)))%:Q)%R.
 
 Definition rat_bigQ (b : bigQ) (r : rat) := bigQ2rat_def b = r.
@@ -303,7 +302,7 @@ Proof. exact: val_inj. Qed.
 
 Lemma rat_bigQ_opp : (rat_bigQ =~> rat_bigQ) BigQ.opp (@GRing.opp _).
 Proof.
-rewrite /rat_bigQ /bigQ2rat_def => b r. 
+rewrite /rat_bigQ /bigQ2rat_def => b r.
 rewrite BigQ.strong_spec_opp Qreduction.Qred_opp [in LHS]/QArith_base.Qnum /=.
 rewrite Z2int_opp mulrNz GRing.mulNr.
 by move=> <-.
@@ -340,7 +339,7 @@ by move: (BinInt.Z.gcd_nonneg n (Zpos d)) => + _ => /[swap] <-.
 Qed.
 
 Lemma BigQ_red_den_nonzero q :
-  match BigQ.red q with BigQ.Qz _ => True | BigQ.Qq _ d => [d]%bigN <> Z0 end.
+  match BigQ.red q with BigQ.Qz _ => True | BigQ.Qq _ d => (BigN.to_Z d) <> Z0 end.
 Proof.
 case: q => [//|n d] /=.
 rewrite /BigQ.norm.
@@ -358,13 +357,13 @@ Qed.
 
 Lemma ratBigQ_red x y : rat_bigQ y x ->
   match BigQ.red y with
-  | BigQ.Qz n => numq x = Z2int [n]%bigZ /\ denq x = 1%R
-  | BigQ.Qq n d => numq x = Z2int [n]%bigZ /\ denq x = Z2int [d]%bigN
+  | BigQ.Qz n => numq x = Z2int (BigZ.to_Z n) /\ denq x = 1%R
+  | BigQ.Qq n d => numq x = Z2int (BigZ.to_Z n) /\ denq x = Z2int (BigN.to_Z d)
   end.
 Proof.
 case: (ratP x) => nx dx nx_dx_coprime {x}.
 rewrite /rat_bigQ /bigQ2rat_def -BigQ.strong_spec_red.
-have ry_red : Qreduction.Qred [BigQ.red y]%bigQ = [BigQ.red y]%bigQ.
+have ry_red : Qreduction.Qred (BigQ.to_Q (BigQ.red y)) = (BigQ.to_Q (BigQ.red y)).
 { by rewrite BigQ.strong_spec_red Qcanon.Qred_involutive. }
 have ry_dneq0 := BigQ_red_den_nonzero y.
 case: (BigQ.red y) ry_dneq0 ry_red => [ny _ _|ny dy dy_neq0].
@@ -382,7 +381,7 @@ rewrite !Num.Theory.gtr0_sg //; last exact/ssrnat.ltP/Pos2Nat.is_pos.
 rewrite !GRing.mul1r => /andP[/eqP <-].
 rewrite ifF; [|exact/eqP/eqP/Num.Theory.lt0r_neq0/ssrnat.ltP/Pos2Nat.is_pos].
 rewrite -!abszE !absz_nat => /eqP[<-]; split=> [//|].
-rewrite -[LHS]/(Z2int (Zpos (BinInt.Z.to_pos [dy]%bigN))) BinInt.Z2Pos.id //.
+rewrite -[LHS]/(Z2int (Zpos (BinInt.Z.to_pos (BigN.to_Z dy)))) BinInt.Z2Pos.id //.
 exact: BigQ.N_to_Z_pos.
 Qed.
 
@@ -423,7 +422,7 @@ case: (BigQ.to_Q q) => nq dq {q}.
 rewrite !Z2int_Qred.
 rewrite Num.Theory.ltr_pdivr_mulr ?ltr0z /=;
   last exact/ssrnat.ltP/Pos2Nat.is_pos.
-rewrite GRing.mulrAC Num.Theory.ltr_pdivl_mulr ?ltr0z; 
+rewrite GRing.mulrAC Num.Theory.ltr_pdivl_mulr ?ltr0z;
   last exact/ssrnat.ltP/Pos2Nat.is_pos.
 rewrite !nat_of_pos_Z_to_pos.
 rewrite !gez0_abs /=; try apply/ltnW/ssrnat.ltP/Pos2Nat.is_pos.
@@ -443,8 +442,8 @@ move=> x X <- y Y <-; rewrite /bigQ2rat_def.
 rewrite /BigQ.eqb BigQ.spec_eq_bool.
 apply/idP/idP.
 - by move/QArith_base.Qeq_bool_iff/Qreduction.Qred_complete=> ->.
-- move/eqP; case: [x]%bigQ=> xn xd.
-  case: [y]%bigQ=> yn yd /=; rewrite !Z2int_Qred /=.
+- move/eqP; case: (BigQ.to_Q x)=> xn xd.
+  case: (BigQ.to_Q y)=> yn yd /=; rewrite !Z2int_Qred /=.
   move/eqP; rewrite GRing.eqr_div.
   + move/eqP=> h; apply/QArith_base.Qeq_bool_iff.
     rewrite /QArith_base.Qeq /=.
@@ -465,8 +464,8 @@ Lemma rat_bigQEl b b' r:
   rat_bigQ b r -> (b == b')%bigQ -> rat_bigQ b' r.
 Proof.
 rewrite /rat_bigQ /bigQ2rat_def /BigQ.eq.
-case: [b]%bigQ=> n d.
-case: [b']%bigQ=> n' d'.
+case: (BigQ.to_Q b)=> n d.
+case: (BigQ.to_Q b')=> n' d'.
 by move=> h /Qreduction.Qred_complete <-.
 Qed.
 
@@ -490,7 +489,7 @@ Definition bigQ_mul_row_mx (a : array bigQ) (x : array (array bigQ)) :=
   PArrayUtils.array_mul_row_mx BigQ.add BigQ.mul 0%bigQ a x.
 
 Definition bigQ_mul_mx_col (x : array (array bigQ)) (a : array bigQ):=
-  PArrayUtils.array_mul_mx_col BigQ.add BigQ.mul 0%bigQ x a. 
+  PArrayUtils.array_mul_mx_col BigQ.add BigQ.mul 0%bigQ x a.
 
 Definition bigQ_mulmx (m n : array (array bigQ)):=
   PArrayUtils.array_mulmx BigQ.add BigQ.mul 0%bigQ m n.
@@ -609,9 +608,9 @@ Proof. by rewrite /BigQUtils.bigQ_scal_norm_arr arr_mapE. Qed.
 
 Lemma bigQ_scal_matE (lambda : bigQ) (x : array (array bigQ)):
   BigQUtils.bigQ_scal_mat lambda x = bigQ_scal_mat lambda x.
-Proof. 
+Proof.
 rewrite /BigQUtils.bigQ_scal_mat arr_mapE /bigQ_scal_mat /arr_map.
-rewrite bigQ_scal_arrE; apply: eq_foldl=> ??.  
+rewrite bigQ_scal_arrE; apply: eq_foldl=> ??.
 by rewrite bigQ_scal_arrE.
 Qed.
 (*TODO : proof of correctness*)
@@ -667,7 +666,7 @@ End BigQComputations.
 
 Section BQR.
 
-Lemma rat_bigQ_ge0 x X: rat_bigQ x X -> 
+Lemma rat_bigQ_ge0 x X: rat_bigQ x X ->
   BigQUtils.bigQ_ge0 x = (0 <= X)%R.
 Proof.
 move=> xX; rewrite /BigQUtils.bigQ_ge0.
@@ -689,7 +688,7 @@ Definition rat_mul_row_mx :=
 Definition rat_mulmx :=
   @array_mulmx [realFieldType of rat] +%R *%R 0%R.
 
-Lemma BQR_array_dot: 
+Lemma BQR_array_dot:
   (rel_array rat_bigQ =~> rel_array rat_bigQ =~> rat_bigQ)
     bigQ_dot rat_dot.
 Proof.
@@ -720,7 +719,7 @@ Lemma BQR_array_eq: (rel_array rat_bigQ =~> rel_array rat_bigQ =~> eq)
 Proof. exact/rel_array_eq/rat_bigQ_eq. Qed.
 
 Lemma BQR_array_mul_rV_mx:
-  (rel_array rat_bigQ =~> rel_array (rel_array rat_bigQ) 
+  (rel_array rat_bigQ =~> rel_array (rel_array rat_bigQ)
     =~> rel_array rat_bigQ)
     bigQ_mul_row_mx rat_mul_row_mx.
 Proof. by apply:rel_array_mul_row_mx; [exact:rat_bigQ_add|exact:rat_bigQ_mul|]. Qed.
@@ -730,14 +729,14 @@ Definition rat_add_arr (X Y : array rat):=
 
 Lemma BQR_array_add x X y Y:
   (length X = length Y) ->
-  rel_array rat_bigQ x X -> rel_array rat_bigQ y Y -> 
+  rel_array rat_bigQ x X -> rel_array rat_bigQ y Y ->
   rel_array rat_bigQ (bigQ_add_arr x y) (rat_add_arr X Y).
 Proof.
 move=> len_eq xX yY; rewrite /bigQ_add_arr.
 rewrite (rel_array_length xX); apply/rel_array_arr_mk_fun=> //.
   by rewrite leEint leb_length.
 move=> i i_len; apply/rat_bigQ_add.
-- move: (rel_array_r xX)=> /(_ i); rewrite (rel_array_length xX) i_len. 
+- move: (rel_array_r xX)=> /(_ i); rewrite (rel_array_length xX) i_len.
   exact.
 - move: (rel_array_r yY)=> /(_ i); rewrite (rel_array_length yY).
   rewrite -len_eq i_len; exact.
@@ -781,7 +780,7 @@ Lemma BQR_array_weighted_lines v V a A:
 Proof.
 move=> len_A_gt0 len_eq len_ai vV aA.
 set r' := fun (x : array bigQ) (X : array rat) =>
-  (forall i, (i < length A)%O -> length X = length A.[i]) /\ 
+  (forall i, (i < length A)%O -> length X = length A.[i]) /\
   rel_array rat_bigQ x X.
 suff: r' (weighted_lines v a) (rat_weighted_lines V A) by case.
 apply: (rel_array_fold_pair_in (r':=r')); [exact:len_eq| |exact:vV|exact:aA| ].
@@ -832,7 +831,7 @@ move=> x X xX y Y yY; apply/idP/idP.
     rewrite /= int_to_natK => -> ->; exact/eqP/XY.
 Qed.
 
-Lemma rel_cV_rat_dot: 
+Lemma rel_cV_rat_dot:
   (rel_cV_rat =~> rel_cV_rat =~> eq) rat_dot (fun x y=> vdot x y).
 Proof. move=> /= x X xX y Y yY; exact/rel_cV_big. Qed.
 
@@ -853,7 +852,7 @@ move=> x X xX y Y yY; split; rewrite ?length_arr_mk_fun ?leEint ?leb_length ?(re
 move=> i; rewrite !mxE nth_arr_mk_fun ?leEint ?leb_length // ?ltEint_nat.
 - by move:(rel_rV_nth xX) (rel_rV_nth yY)=> /(_ i) -> /(_ i) ->.
 - rewrite -(rel_cV_length xX); rewrite nat_to_intK //.
-  rewrite !inE; apply/(ltn_trans (ltn_ord _)). 
+  rewrite !inE; apply/(ltn_trans (ltn_ord _)).
   rewrite {1}(rel_cV_length xX); exact/int_thresholdP.
 Qed.
 
@@ -874,7 +873,7 @@ Local Notation rel_mx_rat_col := (@rel_mx_col [realFieldType of rat] m n).
 Local Notation rel_mx_rat_row := (@rel_mx_row [realFieldType of rat] m n).
 
 Lemma rel_rV_rat_mul_col:
-  (@rel_rV [realFieldType of rat] m =~> rel_mx_rat_col =~> 
+  (@rel_rV [realFieldType of rat] m =~> rel_mx_rat_col =~>
     @rel_rV [realFieldType of rat] n)
     (fun x y=> arr_map (fun col=> rat_dot x col) y)
     (fun X Y=> (X *m Y)%R).
@@ -899,9 +898,9 @@ Qed.
 End RatMatrix.
 Section BQRVector.
 
-Definition rel_cV_bqr {n : nat} := 
+Definition rel_cV_bqr {n : nat} :=
   @rel_point_cV _ _ rat_bigQ n.
-Definition rel_rV_bqr {n : nat} := 
+Definition rel_rV_bqr {n : nat} :=
   @rel_point_rV _ _ rat_bigQ n.
 
 Lemma rel_cV_bqr_eq {n : nat}:
@@ -941,7 +940,7 @@ exists (make (Uint63.succ n) 0%R).[0%uint63 <- B].[succ k <- X].
     by rewrite nN.
   + move=> i; case/boolP: (nat_to_int i == (succ k)).
     * move/eqP=> i_k [: k_len]; rewrite i_k get_set_same.
-      { 
+      {
         rewrite !mxE; case: splitP.
         - move=> j /(congr1 nat_to_int); rewrite i_k (ord1_eq0 j).
           move/(congr1 int_to_nat); rewrite succ_intE //.
@@ -952,11 +951,11 @@ exists (make (Uint63.succ n) 0%R).[0%uint63 <- B].[succ k <- X].
         -  move=> k' /(congr1 nat_to_int); rewrite i_k.
           rewrite add1n -nat_to_intS=> /(congr1 pred); rewrite !pred_succ.
           move/(congr1 int_to_nat); rewrite nat_to_intK.
-          + by rewrite -kK=> /val_inj <-; rewrite !mxE eqxx. 
+          + by rewrite -kK=> /val_inj <-; rewrite !mxE eqxx.
           + rewrite inE; apply/(ltn_trans (ltn_ord k')).
             rewrite nN; exact:int_thresholdP.
       }
-      { 
+      {
         rewrite length_set -ltEint ltEint_nat -n_len succ_intE //.
         by rewrite -kK ltnS ltn_ord.
       }
@@ -1053,7 +1052,7 @@ Proof.
 move=> l L lL; apply/rel_comp_func; [exact/BQR_array_scal/lL|].
 exact/rel_rV_rat_scal.
 Qed.
-  
+
 End BQRVector.
 
 Section BQRMatrix.
@@ -1093,19 +1092,19 @@ Context {n : nat}.
 
 Definition rat_bigQ_rV (a : array bigQ) (v : 'rV[rat]_n):=
   (n == length a) && [forall i : 'I_n, a.[nat_to_int i] -bQr- (v ord0 i)].
-  
+
 Definition rat_bigQ_cV (a : array bigQ) (v : 'cV[rat]_n):=
   (n == length a) && [forall i : 'I_n, a.[nat_to_int i] -bQr- (v i ord0)].
 
-Definition bigQ_arr_to_rat_cV {n : nat} (a : array bigQ) := 
-  (\col_(j < n) (bigQ2rat_def (get a (nat_to_int j))))%R.  
+Definition bigQ_arr_to_rat_cV {n : nat} (a : array bigQ) :=
+  (\col_(j < n) (bigQ2rat_def (get a (nat_to_int j))))%R.
 
 End Def.
 
 Section Proofs.
 
 Lemma rat_bigQ_rVP {n : nat} (a : array bigQ) (v : 'rV[rat]_n):
-  reflect 
+  reflect
     ((n = length a) /\ (forall i : 'I_n, a.[nat_to_int i] -bQr- (v ord0 i)))
     (rat_bigQ_rV a v).
 Proof.
@@ -1116,7 +1115,7 @@ apply/(iffP idP).
 Qed.
 
 Lemma rat_bigQ_cVP {n : nat} (a : array bigQ) (v : 'cV[rat]_n):
-  reflect 
+  reflect
     ((n = length a) /\ (forall i : 'I_n, a.[nat_to_int i] -bQr- (v i ord0)))
     (rat_bigQ_cV a v).
 Proof.
@@ -1132,7 +1131,7 @@ Lemma BQ2R_cVP (a : array bigQ):
 Proof. by apply/rat_bigQ_cVP; split=> // i; rewrite mxE. Qed.
 
 Lemma BQ2R_cVP_cast (a : array bigQ) (n : nat):
-  n = length a -> 
+  n = length a ->
   rat_bigQ_cV a (@bigQ_arr_to_rat_cV n a).
 Proof.
 move=> n_eq; apply/rat_bigQ_cVP; split=> //.
@@ -1156,9 +1155,9 @@ move=> bqr_av bqr_bw; apply/(iffP idP).
   case=> len_a bqr_ai [len_b bqr_bi]; apply/eq_array_relP.
   split; first by (apply: int_to_nat_inj; rewrite -len_a -len_b).
   move=> i; rewrite ltEint_nat -len_a => i_n; apply/BigQ.eqb_eq.
-  move: (bqr_ai (Ordinal i_n)) (bqr_bi (Ordinal i_n)). 
+  move: (bqr_ai (Ordinal i_n)) (bqr_bi (Ordinal i_n)).
   by move/eqP/rat_bigQ_injl=> + /eqP;move=> /[apply]; rewrite /= int_to_natK.
-Qed. 
+Qed.
 
 Lemma BQR_rV_tr {n : nat} (a : array bigQ) (v : 'rV[rat]_n):
   rat_bigQ_cV a (v^T) <-> rat_bigQ_rV a v.
@@ -1181,7 +1180,7 @@ split.
 Qed.
 
 Lemma BQR_scal_rV {n : nat} (lambda : bigQ) (lambda' : rat)
-  (a : array bigQ) (v : 'rV[rat]_n): 
+  (a : array bigQ) (v : 'rV[rat]_n):
   rat_bigQ lambda' lambda -> rat_bigQ_rV a v ->
   rat_bigQ_rV (bigQ_scal_rV lambda a) (lambda' *: v).
 Proof.
@@ -1238,7 +1237,7 @@ case=> len_a bqr_av [len_b bqr_bw]; apply/idP/idP.
   rewrite ltEint_nat -len_a=> j_n; exists (Ordinal j_n).
   split.
   + move=> i /= i_j; move/(_ (nat_to_int i)): j_lt_eq bqr_av bqr_bw.
-    rewrite ltEint_nat nat_to_intK ?i_j ?inE; 
+    rewrite ltEint_nat nat_to_intK ?i_j ?inE;
       last (apply/(ltn_trans i_j)/(@ltn_trans (length a)); [by rewrite -?ltEint_nat //|exact/int_thresholdP]).
     move/(_ isT); case: BigQ.compare_spec=> // + _ /(_ i) /eqP + /(_ i) /eqP.
     move=> /[swap] /rat_bigQEl /[apply]; exact: rat_bigQ_injr.
@@ -1257,7 +1256,7 @@ case=> len_a bqr_av [len_b bqr_bw]; apply/idP/idP.
     move=> /eqP + /eqP.
     move/rat_bigQ_injl=> /[apply] /=; rewrite int_to_natK => ->.
     case: BigQ.compare_spec=> //; by move/QOrderedType.QOrder.lt_irrefl.
-  + move: (bqr_av j) (bqr_bw j)=> /eqP + /eqP. 
+  + move: (bqr_av j) (bqr_bw j)=> /eqP + /eqP.
     move/rat_bigQ_lt /[apply]; rewrite j_eq.
     case: BigQ.compare_spec=> //.
     * move=> /[swap] /=; rewrite /BigQ.lt /BigQ.eq => h.
@@ -1290,8 +1289,8 @@ Qed.
 
 
 Lemma BQltx_inj (a : array (array bigQ)):
-  rel_sorted BQltx_order a -> 
-  (forall i j, (i < length a)%O -> (j < length a)%O -> 
+  rel_sorted BQltx_order a ->
+  (forall i j, (i < length a)%O -> (j < length a)%O ->
   eq_array_bigQ a.[i] a.[j] -> i = j).
 Proof.
 move/(sorted_rel_inj_rel BQltx_order_trans); apply.
@@ -1354,7 +1353,7 @@ Qed.
 
 Lemma BQR_rV_M_mul {m n : nat} (a : array bigQ) (x : array (array bigQ))
   (v : 'rV[rat]_m) (M : 'M_(m,n)):
-  rat_bigQ_rV a v -> rat_bigQ_mx_col x M -> 
+  rat_bigQ_rV a v -> rat_bigQ_mx_col x M ->
   rat_bigQ_rV (bigQ_mul_row_mx a x) (v *m M).
 Proof.
 move=> bqr_a_v bqr_x_M; apply/rat_bigQ_rVP; split.
