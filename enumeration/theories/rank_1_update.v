@@ -148,19 +148,19 @@ Definition vertex_certif
 
 Definition make_basic_point (x : array bigQ) (B : array (array bigQ)):=
   let X := make (Uint63.succ (length B)) (make (length x) 0%bigQ) in
-  let X := X.[0 <- x] in
+  let X := X.[0 <- copy x] in
   IFold.ifold (fun i acc=>
-    acc.[Uint63.succ i <- BigQUtils.bigQ_scal_arr (-1)%bigQ B.[i]]
+    acc.[Uint63.succ i <- copy (BigQUtils.bigQ_scal_arr (-1)%bigQ B.[i])]
   ) (length B) X.
 
 Definition array_to_test (main : array (option (array bigQ * array (array bigQ) * array (array bigQ))))
   (certif_bases : array (array int63)) (order : array int63) (steps : int63) :=
   let res := make steps None in
-  IFold.ifold (fun i acc=>
+  copy (IFold.ifold (fun i acc=>
   if main.[order.[i]] is Some (x, B, _) then
-    acc.[i <- Some (certif_bases.[order.[i]], make_basic_point x B)]
+    acc.[i <- Some (certif_bases.[order.[i]], copy (make_basic_point x B))]
   else acc
-  ) steps res.
+  ) steps res).
 
 Definition bench_old (A : array (array bigQ)) (arr : array (option (array int63 * array (array bigQ)))):=
   let res := make (length arr) None in
