@@ -146,7 +146,7 @@ Definition vertex_certif
   (order : array int63) steps:=
   PArrayUtils.all isSome (explore_from_initial A b certif_bases certif_pred idx x inv order steps).
 
-Definition make_basing_point (x : array bigQ) (B : array (array bigQ)):=
+Definition make_basic_point (x : array bigQ) (B : array (array bigQ)):=
   let X := make (Uint63.succ (length B)) (make (length x) 0%bigQ) in
   let X := X.[0 <- x] in
   IFold.ifold (fun i acc=>
@@ -154,14 +154,13 @@ Definition make_basing_point (x : array bigQ) (B : array (array bigQ)):=
   ) (length B) X.
 
 Definition array_to_test (main : array (option (array bigQ * array (array bigQ) * array (array bigQ))))
-  (certif_bases : array (array int63)):=
-  let res := make (length main) None in
+  (certif_bases : array (array int63)) (order : array int63) (steps : int63) :=
+  let res := make steps None in
   IFold.ifold (fun i acc=>
-  if main.[i] is Some (x, B, _) then
-    acc.[i <- Some (certif_bases.[i], make_basing_point x B)]
+  if main.[order.[i]] is Some (x, B, _) then
+    acc.[i <- Some (certif_bases.[order.[i]], make_basic_point x B)]
   else acc
-  ) (length main) res.
-
+  ) steps res.
 
 Definition bench_old (A : array (array bigQ)) (arr : array (option (array int63 * array (array bigQ)))):=
   let res := make (length arr) None in
@@ -173,12 +172,11 @@ Definition bench_old (A : array (array bigQ)) (arr : array (option (array int63 
 
 Definition bench_old2 (A : array (array bigQ)) (b : array bigQ) (arr : array (option (array int63 * array (array bigQ)))):=
   let Po := (A,b) in
-  let res := make (length arr) None in
-  IFold.ifold (fun i acc=>
-  if arr.[i] is Some p then
-    acc.[i <- Some ((LCA.sat_Po Po p.2) && (LCA.mask_eq Po p.1 p.2))]
-  else acc
-  ) (length arr) res.
+  PArrayUtils.all (fun x =>
+                     if x is Some p then
+                       (LCA.sat_Po Po p.2) && (LCA.mask_eq Po p.1 p.2)
+                     else
+                       false) arr.
 
 End Rank1Certif.
 
