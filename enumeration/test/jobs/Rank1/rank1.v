@@ -1,8 +1,7 @@
 From mathcomp Require Import all_ssreflect.
 From PolyhedraHirsch Require Import rank_1_update.
-From __DATA__ Require Import A b bases idx inv order pred x_I steps.
+From __DATA__ Require Import A b bases idx inv order pred x_I steps det.
 
-Time Definition main := Eval vm_compute in R1.explore_from_initial A b bases pred idx x_I inv order steps.
-Time Definition test := Eval vm_compute in R1.array_to_test main bases.
-Time Definition bench1 := Eval vm_compute in R1.bench_old A test.
-Time Definition bench2 := Eval vm_compute in R1.bench_old2 A b test.
+Definition det := R1.get_num det.
+Time Compute R1.vertex_certif A b bases pred idx x_I inv det order steps.
+
