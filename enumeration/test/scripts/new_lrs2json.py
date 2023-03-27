@@ -3,6 +3,7 @@
 import json, os
 import fractions as fc
 import argparse as argp
+import math
 from prerequisite import core
 
 import sympy as sym
@@ -37,7 +38,7 @@ def get_bases_from_lrs(name):
         bases = [list(map((lambda x : int(x) - 1), x)) for x in mx]
     return sorted(bases)
 
-# Compute the initial basing point from which we compute our vertex certification
+#rewrite A and b to be integer matrices
 # -------------------------------------------------------------------
 def to_gmp_matrix(m):
     M = sym.Matrix(m)
@@ -54,13 +55,29 @@ def list_of_gmp_matrix(PM):
         res.append([bigq(fc.Fraction(PM[k,j].p, PM[k,j].q)) for k in range(p)])
     return res
 
+def poly_scale(A,b):
+    gmp_A, gmp_b = to_gmp_matrix(A), to_gmp_matrix(b)
+    ca, cb = gmp_A.shape, gmp_b.shape
+    mult = 1
+    for j in range(ca[1]):
+        for i in range(ca[0]):
+            mult = QQ.lcm(mult, gmp_A[i,j].element.denominator)
+    for j in range(cb[1]):
+        for i in range(cb[0]):
+            mult = QQ.lcm(mult, gmp_b[i,j].element.denominator)
+    return list_of_gmp_matrix((mult * gmp_A).transpose()), list_of_gmp_matrix(mult * gmp_b)[0]
+
+# Compute the initial basing point from which we compute our vertex certification
+# -------------------------------------------------------------------
+
 def get_initial_basing_point(A,b,base):
     A_I = [A[i] for i in base]
     b_I = [b[i] for i in base]
     gmp_A_I, gmp_b_I = to_gmp_matrix(A_I), to_gmp_matrix(b_I)
     x_I = gmp_A_I.lu_solve(gmp_b_I)
     inv = gmp_A_I.inv()
-    return (list_of_gmp_matrix(x_I)[0], list_of_gmp_matrix(inv))
+    det = gmp_A_I.det()
+    return (list_of_gmp_matrix(det * x_I)[0], list_of_gmp_matrix(det * inv), int(det))
 
 # Construct the graph of lex feasible bases + order of construction
 # -------------------------------------------------------------------
@@ -111,9 +128,12 @@ def main():
 
     # Compute everything
     A,b = get_polyhedron_from_lrs(name)
+    A,b = poly_scale(A,b)
+
+    A,b = get_polyhedron_from_lrs(name)
     bases = get_bases_from_lrs(name)
     idx = 0
-    x_I, inv = (get_initial_basing_point(A,b,bases[idx]))
+    x_I, inv, det = (get_initial_basing_point(A,b,bases[idx]))
     m,n = len(A), len(A[0])
     graph_lex, order, pred = get_lex_graph(bases,m,n)
     # Store in a dictionnary
@@ -125,6 +145,7 @@ def main():
     tgtjson['idx'] = idx
     tgtjson['x_I'] = x_I
     tgtjson['inv'] = inv
+    tgtjson['det'] = det
     tgtjson['order'] = order
     tgtjson['steps'] = len(order)
     tgtjson['pred'] = pred
