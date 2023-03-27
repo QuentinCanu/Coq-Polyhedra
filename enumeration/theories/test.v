@@ -37,11 +37,12 @@ Definition certif_bases := [|
 |[|0|0|]|]%uint63.
 
 Definition idx := 0%uint63.
-Definition x := [|(-1);0|0|]%bigQ.
+Definition x := [|(-2);0|0|]%bigQ.
 Definition inv := [|
-  [|(1#2);(1#2)|0|];
-  [|(1#2);(-1#2)|0|]
+  [|1;1|0|];
+  [|1;-1|0|]
 |[|0|0|]|]%bigQ.
+Definition q := 2%bigZ.
 
 Definition certif_pred :=[|
   (0,(0,0));
@@ -53,7 +54,9 @@ Definition certif_pred :=[|
 Definition order := [|1;2;3|0|]%uint63.
 Definition steps := length order.
 
-Time Definition main := Eval vm_compute in R1.explore_from_initial A b certif_bases certif_pred idx x inv order steps.
+Time Definition main := Eval vm_compute in R1.explore_from_initial A b certif_bases certif_pred idx x inv q order steps.
+Print main.
+
 Time Definition arr := Eval vm_compute in R1.array_to_test main certif_bases order steps.
 Eval vm_compute in arr.
 Time Compute R1.bench_old A arr.
@@ -90,7 +93,8 @@ Definition inv := [|
   [|1;0;0|0|];
   [|0;1;0|0|];
   [|0;0;1|0|]
-|[|0|0|]|]%bigQ.
+ |[|0|0|]|]%bigQ.
+Definition q := 1%bigZ.
 
 Definition certif_pred :=[|
 (0,(0,0));
@@ -106,7 +110,8 @@ Definition certif_pred :=[|
 Definition order := [|1;3;2;6;4;5;7|0|]%uint63.
 Definition steps := length order.
 
-Definition test := Eval vm_compute in R1.vertex_certif A b certif_bases certif_pred idx x inv order steps.
+Definition test := Eval vm_compute in R1.vertex_certif A b certif_bases certif_pred idx x inv q order steps.
+Print test.
 
 End Cube3.
 
