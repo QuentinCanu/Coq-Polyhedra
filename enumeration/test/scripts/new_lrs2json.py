@@ -129,8 +129,6 @@ def main():
     # Compute everything
     A,b = get_polyhedron_from_lrs(name)
     A,b = poly_scale(A,b)
-
-    A,b = get_polyhedron_from_lrs(name)
     bases = get_bases_from_lrs(name)
     idx = 0
     x_I, inv, det = (get_initial_basing_point(A,b,bases[idx]))
