@@ -38,9 +38,10 @@ Definition certif_bases := [|
 
 Definition idx := 0%uint63.
 Definition x := [|(-1);0|0|]%bigQ.
+Definition det := 2%bigQ.
 Definition inv := [|
-  [|(1#2);(1#2)|0|];
-  [|(1#2);(-1#2)|0|]
+  [|(1);(1)|0|];
+  [|(1);(-1)|0|]
 |[|0|0|]|]%bigQ.
 
 Definition certif_pred :=[|
@@ -53,8 +54,8 @@ Definition certif_pred :=[|
 Definition order := [|1;2;3|0|]%uint63.
 Definition steps := length order.
 
-Time Definition main := Eval vm_compute in R1.explore_from_initial A b certif_bases certif_pred idx x inv order steps.
-Time Definition arr := Eval vm_compute in R1.array_to_test main certif_bases order steps.
+Time Definition main := Eval vm_compute in R1.explore_from_initial A b certif_bases certif_pred idx x inv (R1.get_num det) order steps.
+Print main.
 Eval vm_compute in arr.
 Time Compute R1.bench_old A arr.
 Time Compute R1.bench_old2 A b arr.
