@@ -21,10 +21,10 @@ From mathcomp Require Import all_ssreflect.
 Module Cross2.
 
 Definition A := [|
-  [|(-1);-1|0|];
+  [|1;1|0|];
   [|1;-1|0|];
   [|(-1);1|0|];
-  [|1;1|0|]
+  [|(-1);-1|0|]
   |[|0|0|]|]%bigQ.
 
 Definition b := make 4 (-1)%bigQ.
@@ -51,9 +51,11 @@ Definition certif_pred :=[|
   (2,(2,0))
   |(0,(0,0))|]%uint63.
 
-Definition order := [|2;1;3|0|]%uint63.
+Definition order := [|1;2;3|0|]%uint63.
 Definition steps := length order.
 
+Time Definition main := Eval vm_compute in R1.explore_from_initial A b certif_bases certif_pred idx x inv q order steps.
+Print main.
 Eval vm_compute in R1.vertex_certif A b certif_bases certif_pred idx x inv q order steps.
 
 End Cross2.
