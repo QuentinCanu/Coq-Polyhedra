@@ -38,23 +38,26 @@ Definition deep_copy {T : Type} (M : array (array T)):=
   PArrayUtils.mk_fun (fun i=> copy M.[i]) (length M) (default M).
 
 (* ------------------------------------------------------------------ *)
-Definition sat_pert (Ax : (array bigQ)) (q : bigZ) (m : int63) (cmp : array comparison):=
+Definition sat_pert (Ax : (array bigQ)) (m : int63) (cmp : array comparison):=
   IFold.ifold (fun i cmp=>
     if cmp.[i] is Eq then
-      if (i =? m)%uint63 then cmp.[i <- (Ax.[i] ?= -(BigQ.Qz q))%bigQ] else cmp.[i <- (Ax.[i] ?= 0)%bigQ]
+      if (i =? m)%uint63 then cmp.[i <- (Ax.[i] ?= -1)%bigQ] else cmp.[i <- (Ax.[i] ?= 0)%bigQ]
     else cmp
   ) (length cmp) cmp.
 
-Definition cmp_vect (u : array bigQ) (q : bigZ) (v : array bigQ):=
-  PArrayUtils.mk_fun (fun i=> (u.[i] ?= (BigQ.Qz q) *v.[i])%bigQ) (length u)%uint63 Eq.
+Definition cmp_vect (u : array bigQ) (v : array bigQ):=
+  PArrayUtils.mk_fun (fun i=> (u.[i] ?= v.[i])%bigQ) (length u)%uint63 Eq.
 
-Definition sat_cmp (Ax : array (array bigQ)) (q : bigZ) (b : array bigQ) :=
+Definition sat_cmp (Ax : array (array bigQ)) (b : array bigQ) :=
   IFold.ifoldx (fun i cmp=>
-    sat_pert Ax.[i] q (Uint63.pred i) cmp
-  ) 1%uint63 (length Ax) (cmp_vect Ax.[0] q b).
+    sat_pert Ax.[i] (Uint63.pred i) cmp
+  ) 1%uint63 (length Ax) (cmp_vect Ax.[0] b).
 
 Definition sat_lex (Ax : array (array bigQ)) (q : bigZ) (b : array bigQ) (I : array int63):=
-  let cmp := sat_cmp Ax q b in
+  let: Ax :=
+    PArrayUtils.map (PArrayUtils.map (fun x => (x / (BigQ.Qz q))%bigQ)) Ax
+  in
+  let cmp := sat_cmp Ax b in
   (IFold.ifold (fun i '(test,k)=>
     if test then
       if (i =? I.[k])%uint63 then
@@ -159,6 +162,15 @@ Definition explore_from_initial
   A b certif_bases certif_pred idx x inv q order steps:=
   explore b certif_bases certif_pred (initial_main A b certif_bases idx x inv q) order steps.
 
+Definition vertex_certif
+  (A : array (array bigQ)) (b : array bigQ)
+  (certif_bases : array (array int63))
+  (certif_pred : array (int63 * (int63 * int63)))
+  (idx : int63) (x : array bigQ) (inv : array (array bigQ)) q
+  (order : array int63) steps:=
+  PArrayUtils.all isSome (explore_from_initial A b certif_bases certif_pred idx x inv q order steps).
+
+
 (*
 Definition update
   (b : array bigQ)
@@ -231,13 +243,6 @@ Definition explore_from_initial
   A b certif_bases certif_pred idx x inv order steps:=
   explore b certif_bases certif_pred (initial_main A b certif_bases idx x inv) order steps.
 
-Definition vertex_certif
-  (A : array (array bigQ)) (b : array bigQ)
-  (certif_bases : array (array int63))
-  (certif_pred : array (int63 * (int63 * int63)))
-  (idx : int63) (x : array bigQ) (inv : array (array bigQ))
-  (order : array int63) steps:=
-  PArrayUtils.all isSome (explore_from_initial A b certif_bases certif_pred idx x inv order steps).
 
 Definition make_basic_point (x : array bigQ) (B : array (array bigQ)):=
   let X := make (Uint63.succ (length B)) (make (length x) 0%bigQ) in
