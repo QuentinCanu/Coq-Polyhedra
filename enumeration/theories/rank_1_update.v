@@ -104,7 +104,7 @@ Definition update
   let M0r := M.[0].[r] in
   let M'0 :=
     PArrayUtils.mk_fun
-      (fun k => divQZ (M.[0].[k] * Mrs + (b.[r] - M0r) * Ms.[k])%bigQ q)
+      (fun k => divQZ (M.[0].[k] * Mrs + ((BigQ.Qz q) * b.[r] - M0r) * Ms.[k])%bigQ q)
       (length M.[0]) (default M.[0]) in
   let M' := M'.[0 <- M'0] in
   let M' := IFold.ifold (fun k M'=>
