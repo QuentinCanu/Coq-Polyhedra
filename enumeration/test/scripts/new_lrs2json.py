@@ -4,7 +4,7 @@ import json, os
 import fractions as fc
 import argparse as argp
 import math, fractions, random as rd
-import farkas as fk
+from prerequisite import farkas as fk
 from prerequisite import core
 
 import sympy as sym
@@ -157,14 +157,14 @@ def get_edge_inv(G_lex, G_simpl, morf):
 # Get final certificates (Farkas, dim_full)
 # -------------------------------------------------------------------
 def get_farkas_cert(A, m, n):
-    A = sym.Matrix(A).transpose()
+    A = to_gmp_matrix(A).transpose()
     cert_pos, cert_neg = [], []
     for k in range(n):
         cert_pos.append(list(map(bigq,fk.farkas_gen(A, n, m, k))))
         cert_neg.append(list(map(bigq,fk.farkas_gen(-A, n, m, k))))
     return cert_pos, cert_neg
 
-def make_dim_full(lbl_simpl, n):
+def get_dim_full(lbl_simpl, n):
     while True:
         map_lbl = rd.sample(range(len(lbl_simpl)), n+1)
         map_lbl.sort()
@@ -203,7 +203,7 @@ def main():
     morph, morph_inv = get_morph(bases,vtx,bas2vtx)
     graph_vtx = get_graph_vtx(graph_lex,morph,len(vtx))
     edge_inv = get_edge_inv(graph_lex,graph_vtx,morph)
-    farkas_cert = get_farkas_cert(A,m,n)
+    farkas_cert_pos, farkas_cert_neg = get_farkas_cert(A,m,n)
 
 
     # Store in a dictionnary
