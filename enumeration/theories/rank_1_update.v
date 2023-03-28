@@ -119,7 +119,7 @@ Definition update
         (length M.[Uint63.succ Ik]) 0%bigQ in
     let B'Ik :=
       PArrayUtils.mk_fun
-        (fun l => divQZ (B.[Ik].[l] * Mrs - B.[Is].[l] * M.[Uint63.succ Ik].[r])%bigQ q)
+        (fun l => divQZ (B.[Ik].[l] * Mrs - Bs.[l] * M.[Uint63.succ Ik].[r])%bigQ q)
         (length B.[Ik]) 0%bigQ in
     let M' := M'.[Uint63.succ Ik <- M'Ik] in
     let B' := B'.[Ik <- B'Ik] in
