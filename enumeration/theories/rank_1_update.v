@@ -96,44 +96,54 @@ Definition get_num (x : bigQ) :=
 Definition update
   (b : array bigQ)
   (I : array Uint63.int) (r s : Uint63.int)
-  (M : array (array bigQ)) (q : bigZ) :=
+  (x : array bigQ) (B M : array (array bigQ)) (q : bigZ) :=
   let M' := PArrayUtils.mk_fun (fun _ => make (length M.[0]) 0%bigQ) (length M) (default M) in
+  let B' := PArrayUtils.mk_fun (fun _ => make (length B.[0]) 0%bigQ) (length B) (default B) in
   let Is := I.[s] in
+  let Bs := B.[Is] in
   let Ms := M.[Uint63.succ Is] in
   let Mrs := Ms.[r] in
   let M0r := M.[0].[r] in
+  let x' := PArrayUtils.mk_fun (fun k=> divQZ (x.[k]*Mrs + (M0r - (BigQ.Qz q) * b.[r]) * Bs.[k]) q) (length x) (default x) in
   let M'0 :=
     PArrayUtils.mk_fun
       (fun k => divQZ (M.[0].[k] * Mrs + ((BigQ.Qz q) * b.[r] - M0r) * Ms.[k])%bigQ q)
       (length M.[0]) (default M.[0]) in
   let M' := M'.[0 <- M'0] in
-  let M' := IFold.ifold (fun k M'=>
-    if (k =? s)%uint63 then M' else
+  let '(B', M') := IFold.ifold (fun k '(B',M')=>
+    if (k =? s)%uint63 then (B',M') else
     let Ik := I.[k] in
     let M'Ik :=
       PArrayUtils.mk_fun
         (fun l => divQZ (M.[Uint63.succ Ik].[l] * Mrs - M.[Uint63.succ Is].[l] * M.[Uint63.succ Ik].[r])%bigQ q)
         (length M.[Uint63.succ Ik]) 0%bigQ in
+    let B'Ik :=
+      PArrayUtils.mk_fun
+        (fun l => divQZ (B.[Ik].[l] * Mrs - B.[Is].[l] * M.[Uint63.succ Ik].[r])%bigQ q)
+        (length B.[Ik]) 0%bigQ in
     let M' := M'.[Uint63.succ Ik <- M'Ik] in
-    M') (length I) M' in
+    let B' := B'.[Ik <- B'Ik] in
+    (B',M')) (length I) (B',M') in
   let M'r := PArrayUtils.mk_fun (fun l => (-Ms.[l])%bigQ) (length Ms) 0%bigQ in
+  let B'r := PArrayUtils.mk_fun (fun l => (-Bs.[l])%bigQ) (length Bs) 0%bigQ in
   let M' := M'.[Uint63.succ r <- M'r] in
-  (M', get_num Mrs).
+  let B' := M'.[r <- B'r] in
+  (x', B', M', get_num Mrs).
 
 Definition explore
   (b : array bigQ)
   (certif_bases : array (array int63))
   (certif_pred : array (int63 * (int63 * int63)))
-  (main : array (option ((array (array bigQ)) * bigZ)))
+  main
   (order : array int63) (steps : int63):=
   IFold.ifold
     (fun i main=>
        let (idx,rs) := certif_pred.[order.[i]] in
        let (r,s) := rs in
        let I := certif_bases.[idx] in
-       if main.[idx] is Some (M, q) then
-         let '(M', q') := update b I r s M q in
-         if sat_lex M' q' b certif_bases.[order.[i]] then main.[order.[i] <- Some (M', q')] else main
+       if main.[idx] is Some (x, B, M, q) then
+         let '(x', B', M', q') := update b I r s x B M q in
+         if sat_lex M' q' b certif_bases.[order.[i]] then main.[order.[i] <- Some (x', B', M', q')] else main
        else main) steps main.
 
 Definition initial
@@ -141,22 +151,24 @@ Definition initial
   (certif_bases : array (array int63))
   (idx : int63) (x : array bigQ) (inv : array (array bigQ)) (q : bigZ) :=
   let I := certif_bases.[idx] in
+  let B := PArrayUtils.mk_fun (fun _ => make (length inv.[0]) 0%bigQ) (length A) (make (length inv.[0]) 0%bigQ) in
   let M := PArrayUtils.mk_fun (fun _ => make (length A) 0%bigQ) (Uint63.succ (length A)) (make (length A) 0%bigQ) in
   let M := M.[0 <- BigQUtils.bigQ_mul_mx_col A x] in
-  let M :=
-    IFold.ifold (fun i M=>
-                   let M := M.[Uint63.succ I.[i] <- BigQUtils.bigQ_scal_arr (-1)%bigQ (BigQUtils.bigQ_mul_mx_col A inv.[i])] in M)
-      (length I) M
+  let '(B,M) :=
+    IFold.ifold (fun i '(B,M)=>
+      let M := M.[Uint63.succ I.[i] <- BigQUtils.bigQ_scal_arr (-1)%bigQ (BigQUtils.bigQ_mul_mx_col A inv.[i])] in
+      let B := B.[I.[i] <- inv.[i]] in
+    (B,M)) (length I) (B,M)
   in
-  (M, q).
+  (x, B, M, q).
 
 Definition initial_main
   (A : array (array bigQ)) (b : array bigQ)
   (certif_bases : array (array int63))
   (idx : int63) (x : array bigQ) (inv : array (array bigQ)) q :=
   let main := make (length certif_bases) None in
-  let '(M, q) := initial A b certif_bases idx x inv q in
-  if sat_lex M q b (certif_bases.[idx]) then main.[idx <- Some (M, q)] else main.
+  let '(x, B, M, q) := initial A b certif_bases idx x inv q in
+  if sat_lex M q b (certif_bases.[idx]) then main.[idx <- Some (x, B, M, q)] else main.
 
 Definition explore_from_initial
   A b certif_bases certif_pred idx x inv q order steps:=
