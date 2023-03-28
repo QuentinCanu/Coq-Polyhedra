@@ -54,7 +54,7 @@ Definition certif_pred :=[|
 Definition order := [|1;2;3|0|]%uint63.
 Definition steps := length order.
 
-Time Compute (R1.explore_from_initial A b certif_bases certif_pred idx x inv q order steps).[1].
+Time Compute (R1.explore_from_initial A b certif_bases certif_pred idx x inv q order steps).
 
 
 (* Time Definition init := Eval vm_compute in R1.initial A b certif_bases idx x inv q.
