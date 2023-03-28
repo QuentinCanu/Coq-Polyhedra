@@ -3,7 +3,8 @@
 import json, os
 import fractions as fc
 import argparse as argp
-import math
+import math, fractions, random as rd
+import farkas as fk
 from prerequisite import core
 
 import sympy as sym
@@ -34,9 +35,11 @@ def get_bases_from_lrs(name):
     with open(input, 'r') as stream:
         mx = [x.strip() for x in stream]
         mx = [x.split() for x in mx[mx.index('begin')+2:mx.index('end')]]
-        mx = [x[x.index('facets')+1:x.index('det=')-1] for x in mx if x[0]!="1"]
-        bases = [list(map((lambda x : int(x) - 1), x)) for x in mx]
-    return sorted(bases)
+        mx = [x[x.index('facets')+1:x.index('det=')-1] if x[0]!="1" else x[1:] for x in mx]
+        couples = [(mx[i], mx[i+1]) for i in range(0,len(mx),2)]
+        couples = [(list(map((lambda x : int(x) - 1), b)),v) for b,v in couples]
+        bas2vtx = {frozenset(x[0]) : x[1] for x in couples}
+    return sorted([b for b,_ in couples]), bas2vtx
 
 #rewrite A and b to be integer matrices
 # -------------------------------------------------------------------
@@ -113,6 +116,68 @@ def get_lex_graph(bases,m, n):
         pointer += 1
     return [sorted(elt) for elt in graph], order[1:], pred
 
+# Construct the graph of vertices + certificates related to the image graph
+# -------------------------------------------------------------------
+def get_vtx(bas2vtx):
+    vtx_list = [i for i in bas2vtx.values()]
+    vtx_list = sorted(set([tuple(map((lambda x : fractions.Fraction(x)), l)) for l in vtx_list]))
+    return [list(map(str,elt)) for elt in vtx_list]
+        
+def get_morph(bases, vtx, bas2vtx):
+    morph, morph_inv = [None for _ in bases], [None for _ in vtx]
+    aux = {tuple(vtx[i]) : i for i in range(len(vtx))}
+    for i in range(len(bases)):
+        bas = bases[i]
+        v = bas2vtx[frozenset(bas)]
+        j = aux[tuple(v)]
+        morph[i] = j
+        morph_inv[j] = i
+    return morph, morph_inv
+
+def get_graph_vtx(graph_lex, morf, length_vtx):
+    graph = [[] for i in range(length_vtx)]
+    for i in range(len(graph_lex)):
+        tgt_i = morf[i]
+        for j in graph_lex[i]:
+            tgt_j = morf[j]
+            if tgt_i != tgt_j and tgt_j not in graph[tgt_i]:
+                graph[tgt_i].append(tgt_j)
+    return [sorted(x) for x in graph]
+
+def get_edge_inv(G_lex, G_simpl, morf):
+    edge_inv = [[None for j in range(len(G_simpl[i]))] for i in range(len(G_simpl))]
+    for i in range(len(G_lex)):
+        for j in range(len(G_lex[i])):
+            nei = G_lex[i][j]
+            if morf[i] != morf[nei]:
+                j_ = next(i for i,v in enumerate(G_simpl[morf[i]]) if v == morf[nei])
+                edge_inv[morf[i]][j_] = (i,nei)
+    return edge_inv
+    
+# Get final certificates (Farkas, dim_full)
+# -------------------------------------------------------------------
+def get_farkas_cert(A, m, n):
+    A = sym.Matrix(A).transpose()
+    cert_pos, cert_neg = [], []
+    for k in range(n):
+        cert_pos.append(list(map(bigq,fk.farkas_gen(A, n, m, k))))
+        cert_neg.append(list(map(bigq,fk.farkas_gen(-A, n, m, k))))
+    return cert_pos, cert_neg
+
+def make_dim_full(lbl_simpl, n):
+    while True:
+        map_lbl = rd.sample(range(len(lbl_simpl)), n+1)
+        map_lbl.sort()
+        M = sym.Matrix([list(map(fc.Fraction, lbl_simpl[i])) for i in list(map_lbl)[1:]])
+        N = sym.Matrix([list(map(fc.Fraction, lbl_simpl[map_lbl[0]])) for _ in range(n)])
+        Q = M - N
+        Q_gmp = to_gmp_matrix(Q)
+        Q_det = Q_gmp.det()
+        if Q_det != 0:
+            Q_inv = Q.gmp_inv()
+            Q_res = list_of_gmp_matrix(Q_inv)
+            return list(map_lbl)[0], list(map_lbl)[:1], Q_res
+
 
 # Main function, write a json file with one certificate per entry
 # -------------------------------------------------------------------
@@ -129,11 +194,18 @@ def main():
     # Compute everything
     A,b = get_polyhedron_from_lrs(name)
     A,b = poly_scale(A,b)
-    bases = get_bases_from_lrs(name)
+    bases, bas2vtx = get_bases_from_lrs(name)
     idx = 0
     x_I, inv, det = (get_initial_basing_point(A,b,bases[idx]))
     m,n = len(A), len(A[0])
     graph_lex, order, pred = get_lex_graph(bases,m,n)
+    vtx = get_vtx(bas2vtx)
+    morph, morph_inv = get_morph(bases,vtx,bas2vtx)
+    graph_vtx = get_graph_vtx(graph_lex,morph,len(vtx))
+    edge_inv = get_edge_inv(graph_lex,graph_vtx,morph)
+    farkas_cert = get_farkas_cert(A,m,n)
+
+
     # Store in a dictionnary
 
     tgtjson = {}
