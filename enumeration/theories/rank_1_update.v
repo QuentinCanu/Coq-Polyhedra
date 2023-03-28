@@ -288,3 +288,44 @@ End Rank1Certif.
 Module R1 := Rank1Certif.
 
 (* ---------------------------------------------------------------------------- *)
+
+Module CertifPredVerif.
+
+
+
+Definition adjacent (I J : array int63) (r s : int63):=
+  (IFold.ifold (fun i '(kI,kJ,c)=>
+    if c then
+      if (kI <? length I)%uint63 then
+        if (kJ <? length J)%uint63 then
+          if (I.[kI] =? J.[kJ])%uint63 then
+            ((Uint63.succ kI),(Uint63.succ kJ),c)
+          else 
+            if (kI =? s)%uint63 then
+              ((Uint63.succ kI), kJ, c)
+            else 
+              if (J.[kJ] =? r)%uint63 then
+                (kI, (Uint63.succ kJ), c)
+              else (kI, kJ, false)
+        else
+          if (kI =? s)%uint63 then
+            ((Uint63.succ kI), kJ, c)
+          else (kI, kJ, false)
+      else
+        if (kJ <? length J)%uint63 then
+          if (J.[kJ] =? r)%uint63 then
+            (kI, (Uint63.succ kJ), c)
+          else (kI,kJ,false)
+        else (kI,kJ,true)
+    else (kI,kJ,c)) 
+  (length I + length J)%uint63 (0%uint63,0%uint63,true)).2.
+
+Definition certif_pred_correct certif_bases certif_pred :=
+  IFold.iall (fun i =>
+    let J := certif_bases.[i] in
+    let '(idx, rs) := certif_pred.[i] in
+    let '(r,s) := rs in
+    let I := certif_bases.[idx] in
+    adjacent I J r s) (length certif_bases).
+
+End CertifPredVerif.
