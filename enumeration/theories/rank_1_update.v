@@ -104,7 +104,7 @@ Definition update
   let Ms := M.[Uint63.succ Is] in
   let Mrs := Ms.[r] in
   let M0r := M.[0].[r] in
-  let x' := PArrayUtils.mk_fun (fun k=> divQZ (x.[k]*Mrs + (M0r - (BigQ.Qz q) * b.[r]) * Bs.[k]) q) (length x) (default x) in
+  let x' := PArrayUtils.mk_fun (fun k=> divQZ (x.[k] * Mrs + (M0r - (BigQ.Qz q) * b.[r]) * Bs.[k]) q) (length x) (default x) in
   let M'0 :=
     PArrayUtils.mk_fun
       (fun k => divQZ (M.[0].[k] * Mrs + ((BigQ.Qz q) * b.[r] - M0r) * Ms.[k])%bigQ q)
@@ -127,7 +127,7 @@ Definition update
   let M'r := PArrayUtils.mk_fun (fun l => (-Ms.[l])%bigQ) (length Ms) 0%bigQ in
   let B'r := PArrayUtils.mk_fun (fun l => (-Bs.[l])%bigQ) (length Bs) 0%bigQ in
   let M' := M'.[Uint63.succ r <- M'r] in
-  let B' := M'.[r <- B'r] in
+  let B' := B'.[r <- B'r] in
   (x', B', M', get_num Mrs).
 
 Definition explore
