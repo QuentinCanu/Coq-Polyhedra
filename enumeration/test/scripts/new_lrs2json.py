@@ -164,12 +164,12 @@ def get_farkas_cert(A, m, n):
         cert_neg.append(list(map(bigq,fk.farkas_gen(-A, n, m, k))))
     return cert_pos, cert_neg
 
-def get_dim_full(lbl_simpl, n):
+def get_dim_full(vtx, n):
     while True:
-        map_lbl = rd.sample(range(len(lbl_simpl)), n+1)
+        map_lbl = rd.sample(range(len(vtx)), n+1)
         map_lbl.sort()
-        M = sym.Matrix([list(map(fc.Fraction, lbl_simpl[i])) for i in list(map_lbl)[1:]])
-        N = sym.Matrix([list(map(fc.Fraction, lbl_simpl[map_lbl[0]])) for _ in range(n)])
+        M = sym.Matrix([list(map(fc.Fraction, vtx[i])) for i in list(map_lbl)[1:]])
+        N = sym.Matrix([list(map(fc.Fraction, vtx[map_lbl[0]])) for _ in range(n)])
         Q = M - N
         Q_gmp = to_gmp_matrix(Q)
         Q_det = Q_gmp.det()
