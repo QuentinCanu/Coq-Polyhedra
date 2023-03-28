@@ -54,7 +54,7 @@ Definition sat_cmp (Ax : array (array bigQ)) (b : array bigQ) :=
   ) 1%uint63 (length Ax) (cmp_vect Ax.[0] b).
 
 Definition sat_lex (Ax : array (array bigQ)) (q : bigZ) (b : array bigQ) (I : array int63):=
-  let: Ax :=
+  let Ax :=
     PArrayUtils.map (PArrayUtils.map (fun x => (x / (BigQ.Qz q))%bigQ)) Ax
   in
   let cmp := sat_cmp Ax b in
@@ -68,6 +68,22 @@ Definition sat_lex (Ax : array (array bigQ)) (q : bigZ) (b : array bigQ) (I : ar
     ) (length cmp) (true, 0%uint63)).1.
 
 (*sat_lex Ax b I verifies that AX >=lex b and (AX)_I == b_I*)
+
+Definition sat_vtx (A : array (array bigQ)) (b : array bigQ) (x : array bigQ) (I : array int63) :=
+    let Ax := BigQUtils.bigQ_mul_mx_col A x in
+    let cmp := cmp_vect Ax b in
+    (IFold.ifold (fun i '(test,k)=>
+    if test then
+      if (i =? I.[k])%uint63 then
+        if cmp.[i] is Eq then (true,Uint63.succ k) else (false,k)
+      else
+        if cmp.[i] is Lt then (false, k) else (true, k)
+    else (test,k)
+    ) (length cmp) (true, 0%uint63)).1.
+
+Definition all_sat_vtx A b certif_bases certif_vtx :=
+  IFold.iall (fun i=> let I := certif_bases.[i] in let x := certif_vtx.[i] in
+    sat_vtx A b x I) (length certif_bases).
 
 (* ------------------------------------------------------------------ *)
 
