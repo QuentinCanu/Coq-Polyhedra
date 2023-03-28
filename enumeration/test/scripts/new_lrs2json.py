@@ -118,6 +118,14 @@ def get_lex_graph(bases,m, n):
 
 # Construct the graph of vertices + certificates related to the image graph
 # -------------------------------------------------------------------
+def get_unsrt_vtx(bases,bas2vtx):
+    vtx_list = [None for _ in bases]
+    for i in range(len(bases)):
+        bas = bases[i]
+        vtx = bas2vtx[frozenset(bas)]
+        vtx_list[i] = vtx
+    return vtx_list
+
 def get_vtx(bas2vtx):
     vtx_list = [i for i in bas2vtx.values()]
     vtx_list = sorted(set([tuple(map((lambda x : fractions.Fraction(x)), l)) for l in vtx_list]))
@@ -199,11 +207,11 @@ def main():
     x_I, inv, det = (get_initial_basing_point(A,b,bases[idx]))
     m,n = len(A), len(A[0])
     graph_lex, order, pred = get_lex_graph(bases,m,n)
-    vtx = get_vtx(bas2vtx)
-    morph, morph_inv = get_morph(bases,vtx,bas2vtx)
-    graph_vtx = get_graph_vtx(graph_lex,morph,len(vtx))
-    edge_inv = get_edge_inv(graph_lex,graph_vtx,morph)
-    farkas_cert_pos, farkas_cert_neg = get_farkas_cert(A,m,n)
+    vtx = get_unsrt_vtx(bases, bas2vtx)
+    # morph, morph_inv = get_morph(bases,vtx,bas2vtx)
+    # graph_vtx = get_graph_vtx(graph_lex,morph,len(vtx))
+    # edge_inv = get_edge_inv(graph_lex,graph_vtx,morph)
+    # farkas_cert_pos, farkas_cert_neg = get_farkas_cert(A,m,n)
 
 
     # Store in a dictionnary
@@ -219,6 +227,7 @@ def main():
     tgtjson['order'] = order
     tgtjson['steps'] = len(order)
     tgtjson['pred'] = pred
+    tgtjson['vtx'] = vtx
     tgtdir = core.resource(name)
     
     with open(os.path.join(tgtdir, f"{name}.json"), "w") as stream:
