@@ -1,3 +1,5 @@
 .gitignore
 /_build/
-/enumeration/test/data
+/enumeration/test/data/*/bin
+/enumeration/test/data/*/coq*
+/enumeration/test/data/*/*.json
