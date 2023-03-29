@@ -140,7 +140,7 @@ Definition update
                      let Mls := M.[Uint63.succ Is].[l] in
                      let Mrk := M.[Uint63.succ Ik].[r] in
                      let z := (M.[Uint63.succ Ik].[l] * Mrs - M.[Uint63.succ Is].[l] * M.[Uint63.succ Ik].[r])%bigZ in
-                     (MIk.[l <- BigZ.div z q], (Mlk, Mrs, Mls, Mrk, q)::nums)) (length M.[Uint63.succ Ik]) (make (length M.[Uint63.succ Ik]) 0%bigZ, nums)
+                     (MIk.[l <- BigZ.div z q], (*(Mlk, Mrs, Mls, Mrk, q)::*)nums)) (length M.[Uint63.succ Ik]) (make (length M.[Uint63.succ Ik]) 0%bigZ, nums)
     in
       (*PArrayUtils.mk_fun
         (fun l => divQZ  q)
