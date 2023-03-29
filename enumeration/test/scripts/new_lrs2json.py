@@ -74,9 +74,9 @@ def poly_scale(A,b):
     for i in range(ca[0]):
         aux_A = []
         for j in range(ca[1]):
-            aux_A.append(bigq(scale[i] * fc.Fraction(A[i,j])))
+            aux_A.append(bigq(fc.Fraction(scale[i] * A[i,j])))
         res_A.append(aux_A)
-        res_b.append(bigq(scale[i] * fc.Fraction(b[i,0])))
+        res_b.append(bigq(fc.Fraction(scale[i] *  b[i,0])))
     return res_A, res_b      
 
     
