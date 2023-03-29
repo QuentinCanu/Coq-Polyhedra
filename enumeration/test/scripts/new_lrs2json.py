@@ -79,10 +79,6 @@ def poly_scale(A,b):
         res_b.append(bigq(fc.Fraction(scale[i] *  b[i,0])))
     return res_A, res_b      
 
-    
-        
-
-
 # Compute the initial basing point from which we compute our vertex certification
 # -------------------------------------------------------------------
 
@@ -108,14 +104,14 @@ def get_initial_basing_point(A,b,base):
 
 # Construct the graph of lex feasible bases + order of construction
 # -------------------------------------------------------------------
-def get_lex_graph(bases,m, n):
+def get_lex_graph(bases,idx, m, n):
     bases_dic = {frozenset(base) : i for (i,base) in enumerate(bases)}
     graph = [set() for _ in range(len(bases))]
     order = []
     pred = [(0,0,0) for _ in range(len(bases))]
     visited = {i : False for i in bases_dic.keys()}
-    visited[frozenset(bases[0])] = True
-    queue = [0]
+    visited[frozenset(bases[idx])] = True
+    queue = [idx]
     pointer = 0
     while True:
         if pointer >= len(queue):
@@ -230,7 +226,7 @@ def main():
     idx = get_idx(bases, bas2det)
     x_I, inv, det = (get_initial_basing_point(A,b,bases[idx]))
     m,n = len(A), len(A[0])
-    graph_lex, order, pred = get_lex_graph(bases,m,n)
+    graph_lex, order, pred = get_lex_graph(bases,idx,m,n)
     vtx = get_unsrt_vtx(bases, bas2vtx)
     # morph, morph_inv = get_morph(bases,vtx,bas2vtx)
     # graph_vtx = get_graph_vtx(graph_lex,morph,len(vtx))
