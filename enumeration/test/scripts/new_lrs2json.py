@@ -35,11 +35,12 @@ def get_bases_from_lrs(name):
     with open(input, 'r') as stream:
         mx = [x.strip() for x in stream]
         mx = [x.split() for x in mx[mx.index('begin')+2:mx.index('end')]]
-        mx = [x[x.index('facets')+1:x.index('det=')-1] if x[0]!="1" else x[1:] for x in mx]
+        mx = [(x[x.index('facets')+1:x.index('det=')-1], x[x.index('det=')+1]) if x[0]!="1" else x[1:] for x in mx]
         couples = [(mx[i], mx[i+1]) for i in range(0,len(mx),2)]
-        couples = [(list(map((lambda x : int(x) - 1), b)),v) for b,v in couples]
-        bas2vtx = {frozenset(x[0]) : x[1] for x in couples}
-    return sorted([b for b,_ in couples]), bas2vtx
+        couples = [(((list(map((lambda x : int(x) - 1), b))), d) ,v) for (b,d),v in couples]
+        bas2vtx = {frozenset(b) : v for ((b,_),v) in couples}
+        bas2det = {frozenset(b) : d for ((b,d),_) in couples}
+    return sorted([b for (b,_),_ in couples]), bas2vtx, bas2det
 
 #rewrite A and b to be integer matrices
 # -------------------------------------------------------------------
@@ -61,17 +62,41 @@ def list_of_gmp_matrix(PM):
 def poly_scale(A,b):
     gmp_A, gmp_b = to_gmp_matrix(A), to_gmp_matrix(b)
     ca, cb = gmp_A.shape, gmp_b.shape
-    mult = 1
-    for j in range(ca[1]):
-        for i in range(ca[0]):
+    scale = [None for _ in range(ca[0])]
+    for i in range(ca[0]):
+        mult, div = gmp_b[i,0].element.denominator, gmp_b[i,0].element.numerator
+        for j in range(ca[1]):
             mult = QQ.lcm(mult, gmp_A[i,j].element.denominator)
-    for j in range(cb[1]):
-        for i in range(cb[0]):
-            mult = QQ.lcm(mult, gmp_b[i,j].element.denominator)
-    return list_of_gmp_matrix((mult * gmp_A).transpose()), list_of_gmp_matrix(mult * gmp_b)[0]
+            div = QQ.gcd(div, gmp_A[i,j].element.numerator)
+        scale[i] = (mult/div)
+    A, b = gmp_A.to_Matrix(), gmp_b.to_Matrix()
+    res_A, res_b = [], []
+    for i in range(ca[0]):
+        aux_A = []
+        for j in range(ca[1]):
+            aux_A.append(bigq(scale[i] * fc.Fraction(A[i,j])))
+        res_A.append(aux_A)
+        res_b.append(bigq(scale[i] * fc.Fraction(b[i,0])))
+    return res_A, res_b      
+
+    
+        
+
 
 # Compute the initial basing point from which we compute our vertex certification
 # -------------------------------------------------------------------
+
+def get_idx(bases, bas2det):
+    min = math.inf
+    idx = 0
+    for i in range(len(bases)):
+        bas = bases[i]
+        det = fc.Fraction(bas2det[frozenset(bas)])
+        if det < min:
+            min = det
+            idx = i
+    print(min)
+    return idx
 
 def get_initial_basing_point(A,b,base):
     A_I = [A[i] for i in base]
@@ -202,8 +227,8 @@ def main():
     # Compute everything
     A,b = get_polyhedron_from_lrs(name)
     A,b = poly_scale(A,b)
-    bases, bas2vtx = get_bases_from_lrs(name)
-    idx = 0
+    bases, bas2vtx, bas2det = get_bases_from_lrs(name)
+    idx = get_idx(bases, bas2det)
     x_I, inv, det = (get_initial_basing_point(A,b,bases[idx]))
     m,n = len(A), len(A[0])
     graph_lex, order, pred = get_lex_graph(bases,m,n)
