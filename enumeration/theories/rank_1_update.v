@@ -53,9 +53,9 @@ Definition sat_cmp (Ax : array (array bigQ)) (b : array bigQ) :=
     sat_pert Ax.[i] (Uint63.pred i) cmp
   ) 1%uint63 (length Ax) (cmp_vect Ax.[0] b).
 
-Definition sat_lex (Ax : array (array bigQ)) (q : bigZ) (b : array bigQ) (I : array int63):=
-  let: Ax :=
-    PArrayUtils.map (PArrayUtils.map (fun x => (x / (BigQ.Qz q))%bigQ)) Ax
+Definition sat_lex (Ax : array (array bigZ)) (q : bigZ) (b : array bigQ) (I : array int63):=
+  let Ax :=
+    PArrayUtils.map (PArrayUtils.map (fun x => (BigQ.Qz x / BigQ.Qz q)%bigQ)) Ax
   in
   let cmp := sat_cmp Ax b in
   (IFold.ifold (fun i '(test,k)=>
@@ -94,46 +94,55 @@ Definition get_num (x : bigQ) :=
   end.
 
 Definition update
-  (b : array bigQ)
+  (b : array bigZ)
   (I : array Uint63.int) (r s : Uint63.int)
-  (M : array (array bigQ)) (q : bigZ) :=
-  let M' := PArrayUtils.mk_fun (fun _ => make (length M.[0]) 0%bigQ) (length M) (default M) in
+  (M : array (array bigZ)) (q : bigZ) :
+  array (array bigZ) * bigZ * seq (bigZ * bigZ * bigZ * bigZ * bigZ) :=
+  let M' := PArrayUtils.mk_fun (fun _ => make 1%uint63 0%bigZ) (length M) (default M) in
   let Is := I.[s] in
   let Ms := M.[Uint63.succ Is] in
   let Mrs := Ms.[r] in
   let M0r := M.[0].[r] in
   let M'0 :=
     PArrayUtils.mk_fun
-      (fun k => divQZ (M.[0].[k] * Mrs + ((BigQ.Qz q) * b.[r] - M0r) * Ms.[k])%bigQ q)
+      (fun k => BigZ.div (M.[0].[k] * Mrs + (q * b.[r] - M0r) * Ms.[k])%bigZ q)
       (length M.[0]) (default M.[0]) in
   let M' := M'.[0 <- M'0] in
-  let M' := IFold.ifold (fun k M'=>
-    if (k =? s)%uint63 then M' else
+  let '(M', nums) := IFold.ifold (fun k '(M', nums) =>
+    if (k =? s)%uint63 then (M', nums) else
     let Ik := I.[k] in
-    let M'Ik :=
-      PArrayUtils.mk_fun
-        (fun l => divQZ (M.[Uint63.succ Ik].[l] * Mrs - M.[Uint63.succ Is].[l] * M.[Uint63.succ Ik].[r])%bigQ q)
-        (length M.[Uint63.succ Ik]) 0%bigQ in
+    let '(M'Ik, nums')  :=
+      IFold.ifold (fun l '(MIk, nums) =>
+                     let Mlk := M.[Uint63.succ Ik].[l] in
+                     let Mls := M.[Uint63.succ Is].[l] in
+                     let Mrk := M.[Uint63.succ Ik].[r] in
+                     let z := (M.[Uint63.succ Ik].[l] * Mrs - M.[Uint63.succ Is].[l] * M.[Uint63.succ Ik].[r])%bigZ in
+                     (MIk.[l <- BigZ.div z q], (Mlk, Mrs, Mls, Mrk, q)::nums)) (length M.[Uint63.succ Ik]) (make (length M.[Uint63.succ Ik]) 0%bigZ, nums)
+    in
+      (*PArrayUtils.mk_fun
+        (fun l => divQZ  q)
+        (length M.[Uint63.succ Ik]) 0%bigQ in*)
     let M' := M'.[Uint63.succ Ik <- M'Ik] in
-    M') (length I) M' in
-  let M'r := PArrayUtils.mk_fun (fun l => (-Ms.[l])%bigQ) (length Ms) 0%bigQ in
+    (M', nums')) (length I) (M', [::]) in
+  let M'r := PArrayUtils.mk_fun (fun l => (-Ms.[l])%bigZ) (length Ms) 0%bigZ in
   let M' := M'.[Uint63.succ r <- M'r] in
-  (M', get_num Mrs).
+  (M', Mrs, nums).
 
 Definition explore
   (b : array bigQ)
   (certif_bases : array (array int63))
   (certif_pred : array (int63 * (int63 * int63)))
-  (main : array (option ((array (array bigQ)) * bigZ)))
+  (main : array (option ((array (array bigZ)) * bigZ * seq (bigZ * bigZ * bigZ * bigZ * bigZ))))
   (order : array int63) (steps : int63):=
+  let b_int := PArrayUtils.map get_num b in
   IFold.ifold
     (fun i main=>
        let (idx,rs) := certif_pred.[order.[i]] in
        let (r,s) := rs in
        let I := certif_bases.[idx] in
-       if main.[idx] is Some (M, q) then
-         let '(M', q') := update b I r s M q in
-         if sat_lex M' q' b certif_bases.[order.[i]] then main.[order.[i] <- Some (M', q')] else main
+       if main.[idx] is Some (M, q, _) then
+         let '(M', q', nums') := update b_int I r s M q in
+         if sat_lex M' q' b certif_bases.[order.[i]] then main.[order.[i] <- Some (M', q', nums')] else main
        else main) steps main.
 
 Definition initial
@@ -148,15 +157,16 @@ Definition initial
                    let M := M.[Uint63.succ I.[i] <- BigQUtils.bigQ_scal_arr (-1)%bigQ (BigQUtils.bigQ_mul_mx_col A inv.[i])] in M)
       (length I) M
   in
-  (M, q).
+  (PArrayUtils.map (PArrayUtils.map get_num) M, q).
 
 Definition initial_main
   (A : array (array bigQ)) (b : array bigQ)
   (certif_bases : array (array int63))
-  (idx : int63) (x : array bigQ) (inv : array (array bigQ)) q :=
+  (idx : int63) (x : array bigQ) (inv : array (array bigQ)) q :
+  array (option ((array (array bigZ)) * bigZ * seq (bigZ * bigZ * bigZ * bigZ * bigZ))) :=
   let main := make (length certif_bases) None in
   let '(M, q) := initial A b certif_bases idx x inv q in
-  if sat_lex M q b (certif_bases.[idx]) then main.[idx <- Some (M, q)] else main.
+  if sat_lex M q b (certif_bases.[idx]) then main.[idx <- Some (M, q, [::])] else main.
 
 Definition explore_from_initial
   A b certif_bases certif_pred idx x inv q order steps:=
@@ -168,8 +178,20 @@ Definition vertex_certif
   (certif_pred : array (int63 * (int63 * int63)))
   (idx : int63) (x : array bigQ) (inv : array (array bigQ)) q
   (order : array int63) steps:=
-  PArrayUtils.all isSome (explore_from_initial A b certif_bases certif_pred idx x inv q order steps).
+  let main := explore_from_initial A b certif_bases certif_pred idx x inv q order steps in
+  IFold.ifold (fun i res => res && isSome main.[order.[i]]) steps true.
 
+Definition num_profile
+  (main : array (option ((array (array bigZ)) * bigZ * seq (bigZ * bigZ * bigZ * bigZ * bigZ)))) (order : array int63) steps :=
+  IFold.ifold (fun i res =>
+                 match main.[order.[i]] with
+                 | Some (_, _, s) =>
+                     foldl (fun _ '(a, b, c, d, e) =>
+                              let ab := (a * b)%bigZ in
+                              let cd := (c * d)%bigZ in
+                              (ab, cd, ab - cd)%bigZ) (0, 0, 0)%bigZ s
+                 | None => res
+                 end) steps (0, 0, 0)%bigZ.
 
 (*
 Definition update
