@@ -95,7 +95,6 @@ def get_idx(bases, bas2det):
         if det < min:
             min = det
             idx = i
-    print(min)
     return idx
 
 def get_initial_basing_point(A,b,base):
