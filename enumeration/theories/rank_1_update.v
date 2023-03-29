@@ -19,24 +19,6 @@ Local Notation int63 := Uint63.int.
 
 Module Rank1Certif.
 
-Definition scal_col (x : array (array bigQ)) (i : int63) (a : bigQ):=
-  x.[i <-
-  IFold.ifold (fun k c=> c.[k <- (a * c.[k])%bigQ])
-  (length x.[i]) x.[i]].
-
-Definition lin_col
-  (x : array (array bigQ)) (i j : int63) (ai aj : bigQ):=
-  x.[i <-
-    IFold.ifold (fun k c=> c.[k <- (ai * c.[k] + aj * x.[j].[k])%bigQ])
-    (length x.[i]) x.[i]].
-
-Definition col0
-  (x : array (array bigQ)) (i : int63):=
-  x.[i <- IFold.ifold (fun k c=> c.[k <- 0%bigQ]) (length x.[i]) x.[i]].
-
-Definition deep_copy {T : Type} (M : array (array T)):=
-  PArrayUtils.mk_fun (fun i=> copy M.[i]) (length M) (default M).
-
 (* ------------------------------------------------------------------ *)
 Definition sat_pert (Ax : (array bigQ)) (m : int63) (cmp : array comparison):=
   IFold.ifold (fun i cmp=>
