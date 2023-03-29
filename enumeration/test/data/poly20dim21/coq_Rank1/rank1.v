@@ -5,8 +5,9 @@ From POLY20DIM21_DATA Require Import A b bases idx inv order pred x_I steps det.
 
 Definition det := R1.get_num det.
 Eval vm_compute in det.
-(*Time Compute R1.vertex_certif A b bases pred idx x_I inv det order steps.*)
-(*Time Definition main := Eval vm_compute in R1.explore_from_initial
-  A b bases pred idx x_I inv det order steps.*)
+Time Compute R1.vertex_certif A b bases pred idx x_I inv det order steps.
+(*Time (*Definition main :=*) Eval vm_compute in R1.explore_from_initial
+                                            A b bases pred idx x_I inv det order steps.
+*)
 (*Time Definition res := Eval vm_compute in R1.num_profile (R1.explore_from_initial
   A b bases pred idx x_I inv det order steps) order steps.*)
