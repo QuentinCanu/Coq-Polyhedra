@@ -249,8 +249,6 @@ Module R1 := Rank1Certif.
 
 Module CertifPredVerif.
 
-
-
 Definition adjacent (I J : array int63) (r s : int63):=
   (IFold.ifold (fun i '(kI,kJ,c)=>
     if c then
