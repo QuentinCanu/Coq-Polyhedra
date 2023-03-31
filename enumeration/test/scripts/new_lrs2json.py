@@ -82,33 +82,57 @@ def poly_scale(A,b):
 # Compute the initial basing point from which we compute our vertex certification
 # -------------------------------------------------------------------
 
-def get_idx(bases, bas2det):
-    min = math.inf
-    idx = 0
-    for i in range(len(bases)):
-        bas = bases[i]
-        det = fc.Fraction(bas2det[frozenset(bas)])
-        if det < min:
-            min = det
-            idx = i
-    return idx
-
-def get_initial_basing_point(A,b,base):
-    A_I = [A[i] for i in base]
-    b_I = [b[i] for i in base]
-    gmp_A_I, gmp_b_I = to_gmp_matrix(A_I), to_gmp_matrix(b_I)
-    x_I = gmp_A_I.lu_solve(gmp_b_I)
-    inv = gmp_A_I.inv()
-    det = gmp_A_I.det()
-    return (list_of_gmp_matrix(det * x_I)[0], list_of_gmp_matrix(det * inv), int(det))
+# def get_idx(bases, bas2det):
+#     min = math.inf
+#     idx = 0
+#     for i in range(len(bases)):
+#         bas = bases[i]
+#         det = fc.Fraction(bas2det[frozenset(bas)])
+#         if det < min:
+#             min = det
+#             idx = i
+#     return idx
 
 # Construct the graph of lex feasible bases + order of construction
 # -------------------------------------------------------------------
-def get_lex_graph(bases,idx, m, n):
+
+def get_initial_basing_point(A,bases,idx):
+    res = [None for _ in bases] 
+    base = bases[idx]
+    A_I = [A[i] for i in base]
+    gmp_A_I = to_gmp_matrix(A_I)
+    inv = gmp_A_I.inv()
+    gmp_A = to_gmp_matrix(A)
+    M = - gmp_A * inv
+    init = [None for _ in range(len(A))]
+    for i in range(len(base)):
+        init[base[i]] = M[:,i]
+    res[idx] = init
+    return res
+
+def update(M,I,r,s):
+    Mrs = M[I[s]][r,0]
+    Mp = [None for _ in range(len(M))]
+    Mp[r] = -M[I[s]]/Mrs
+    for i in range(len(I)):
+        if i != s:
+            Mp[I[i]] = (Mrs * M[I[i]] - M[I[i]][r,0] * M[I[s]])/Mrs
+    return Mp
+
+def format_updates(updates):
+    res = []
+    for M in updates:
+        Mf = [['0'] if col is None else list_of_gmp_matrix(col)[0] for col in M]
+        res.append(Mf)
+    return res
+
+def get_lex_graph(A,bases,idx):
+    updates = get_initial_basing_point(A,bases,idx)
+    m, n = len(A), len(A[0])
     bases_dic = {frozenset(base) : i for (i,base) in enumerate(bases)}
-    graph = [set() for _ in range(len(bases))]
+    graph = [set() for _ in bases]
     order = []
-    pred = [(0,0,0) for _ in range(len(bases))]
+    pred = [(0,0,0) for _ in bases]
     visited = {i : False for i in bases_dic.keys()}
     visited[frozenset(bases[idx])] = True
     queue = [idx]
@@ -121,6 +145,7 @@ def get_lex_graph(bases,idx, m, n):
         reg = len(graph[idx_base])
         if reg < n:
             base = bases[idx_base]
+            M = updates[idx_base]
             base_set = set(base)
             for s in range(len(bases[idx_base])):
                 for r in range(m):
@@ -133,8 +158,9 @@ def get_lex_graph(bases,idx, m, n):
                                 visited[nei_set] = True
                                 queue.append(idx_nei)
                                 pred[idx_nei] = (idx_base,r,s)
+                                updates[idx_nei] = update(M,base,r,s)
         pointer += 1
-    return [sorted(elt) for elt in graph], order[1:], pred
+    return [sorted(elt) for elt in graph], order[1:], pred, format_updates(updates)
 
 # Construct the graph of vertices + certificates related to the image graph
 # -------------------------------------------------------------------
@@ -223,10 +249,9 @@ def main():
     A,b = get_polyhedron_from_lrs(name)
     A,b = poly_scale(A,b)
     bases, bas2vtx, bas2det = get_bases_from_lrs(name)
-    idx = get_idx(bases, bas2det)
-    x_I, inv, det = (get_initial_basing_point(A,b,bases[idx]))
-    m,n = len(A), len(A[0])
-    graph_lex, order, pred = get_lex_graph(bases,idx,m,n)
+    idx = 2
+    graph_lex, order, pred, updates = get_lex_graph(A,bases,idx)
+    steps = len(order)
     vtx = get_unsrt_vtx(bases, bas2vtx)
     # morph, morph_inv = get_morph(bases,vtx,bas2vtx)
     # graph_vtx = get_graph_vtx(graph_lex,morph,len(vtx))
@@ -240,14 +265,12 @@ def main():
     tgtjson['A'] = A
     tgtjson['b'] = b
     tgtjson['bases'] = bases
-    tgtjson['idx'] = idx
-    tgtjson['x_I'] = x_I
-    tgtjson['inv'] = inv
-    tgtjson['det'] = det
-    tgtjson['order'] = order
-    tgtjson['steps'] = len(order)
-    tgtjson['pred'] = pred
     tgtjson['vtx'] = vtx
+    tgtjson['pred'] = pred
+    tgtjson['updates'] = updates
+    tgtjson['idx'] = idx
+    tgtjson['order'] = order
+    tgtjson['steps'] = steps
     tgtdir = core.resource(name)
     
     with open(os.path.join(tgtdir, f"{name}.json"), "w") as stream:

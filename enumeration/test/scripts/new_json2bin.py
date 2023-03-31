@@ -16,14 +16,12 @@ DESCRIPTORS = dict(
     A = "[[Q]]",
     b = "[Q]",
     bases = "[[I]]",
-    idx = "I",
-    x_I = "[Q]",
-    inv = "[[Q]]",
-    det = "Q",
-    steps = "I",
-    order = "[I]",
+    vtx = "[[Q]]",
     pred = "[(I,I,I)]",
-    vtx = "[[Q]]"
+    updates = "[[[Q]]]",
+    idx = "I",
+    order = "[I]",
+    steps = "I",
 )
 
 DESCRIPTORS = {

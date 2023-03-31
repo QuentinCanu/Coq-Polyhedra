@@ -147,24 +147,36 @@ Definition check_update
       if ((M.[Ik].[l] - M'.[Ik].[l]) * Mrs ?= M.[Is].[l] * M.[Ik].[r])%bigQ is Eq then true else false) 
     (length M.[Ik])) (length M).
 
-Definition check_all_updates
+Definition look_all_updates
   (certif_bases : array (array int63))
   (certif_pred : array (int63 * (int63 * int63)))
   (certif_updates : array ((array (array bigQ))))
-  (order : array int63) (steps : int63) :=
-  IFold.iall (fun i =>
+  (idx : int63) (order : array int63) (steps : int63) :=
+  let res :=
+  IFold.ifold (fun i acc=>
+    (* if (i =? idx)%uint63 then true else *)
     let M' := certif_updates.[order.[i]] in
     let (idx,rs) := certif_pred.[order.[i]] in
     let (r,s) := rs in
     let I := certif_bases.[idx] in
     let M := certif_updates.[idx] in 
-        check_update I r s M M') steps.
+      acc.[order.[i] <- check_update I r s M M']) 
+    steps (make (length certif_bases) false)
+  in let res := res.[idx <- true] in res.
+
+Definition check_all_updates
+  (certif_bases : array (array int63))
+  (certif_pred : array (int63 * (int63 * int63)))
+  (certif_updates : array ((array (array bigQ))))
+  (idx : int63) (order : array int63) (steps : int63):=
+  PArrayUtils.all id (look_all_updates certif_bases certif_pred certif_updates idx order steps).
+
 
 (* ------------------------------------------------------------------ *)
 
-Definition vertex_certif A b certif_bases certif_vtx certif_pred certif_updates order steps :=
+Definition vertex_certif A b certif_bases certif_vtx certif_pred certif_updates idx order steps :=
   all_sat_lex A b certif_bases certif_vtx certif_updates order steps &&
-  check_all_updates certif_bases certif_pred certif_updates order steps.
+  check_all_updates certif_bases certif_pred certif_updates idx order steps.
 
 (* Definition explore
   (b : array bigQ)
