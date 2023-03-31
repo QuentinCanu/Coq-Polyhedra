@@ -145,7 +145,7 @@ Definition check_update
     let Ik := I.[k] in
     IFold.iall (fun l=>
       if ((M.[Ik].[l] - M'.[Ik].[l]) * Mrs ?= M.[Is].[l] * M.[Ik].[r])%bigQ is Eq then true else false) 
-    (length M.[Ik])) (length M).
+    (length M.[Ik])) (length I).
 
 Definition look_all_updates
   (certif_bases : array (array int63))
