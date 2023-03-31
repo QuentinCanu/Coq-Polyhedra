@@ -154,15 +154,15 @@ Definition look_all_updates
   (idx : int63) (order : array int63) (steps : int63) :=
   let res :=
   IFold.ifold (fun i acc=>
-    (* if (i =? idx)%uint63 then true else *)
     let M' := certif_updates.[order.[i]] in
     let (idx,rs) := certif_pred.[order.[i]] in
     let (r,s) := rs in
     let I := certif_bases.[idx] in
     let M := certif_updates.[idx] in 
-      acc.[order.[i] <- check_update I r s M M']) 
-    steps (make (length certif_bases) false)
-  in let res := res.[idx <- true] in res.
+      acc.[i <- check_update I r s M M']) 
+    steps (make (length steps) false)
+  in res.
+  (* in let res := res.[idx <- true] in res. *)
 
 Definition check_all_updates
   (certif_bases : array (array int63))
