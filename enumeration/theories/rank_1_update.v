@@ -160,7 +160,7 @@ Definition look_all_updates
     let I := certif_bases.[idx] in
     let M := certif_updates.[idx] in 
       acc.[i <- check_update I r s M M']) 
-    steps (make (length steps) false)
+    steps (make steps false)
   in res.
   (* in let res := res.[idx <- true] in res. *)
 
