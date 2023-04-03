@@ -16,6 +16,10 @@ from sympy.polys.matrices import DomainMatrix
 def bigq(x):
     return str(x)
 
+def QQ_red(x):
+    d = QQ.gcd(x.numerator,x.denominator)
+    return QQ(x.numerator/d,x.denominator/d)
+
 # Extract polyhedron information from lrs files
 # -------------------------------------------------------------------
 def get_polyhedron_from_lrs(name):
@@ -109,7 +113,7 @@ def update(m, n, gmp_A, I, r, s, inv):
             Mrk = (Ar * inv[I[k]])[0,0]
             res[I[k]] = (Mrs * inv[I[k]] - Mrk * inv[I[s]])/Mrs
             v[k] = Mrk.element / (Mrs.element * mult)
-    return list_of_gmp_matrix(u)[0],[bigq(elt) for elt in v],res
+    return list_of_gmp_matrix(u)[0],[bigq(QQ_red(elt)) for elt in v],res
         
 
 def get_lex_graph(A,bases,idx,inv):
