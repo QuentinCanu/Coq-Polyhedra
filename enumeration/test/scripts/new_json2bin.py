@@ -17,12 +17,11 @@ DESCRIPTORS = dict(
     b = "[Q]",
     bases = "[[I]]",
     idx = "I",
-    x_I = "[Q]",
     inv = "[[Q]]",
-    det = "Q",
     steps = "I",
     order = "[I]",
     pred = "[(I,I,I)]",
+    pred_vect = "[([Q],[Q])]",
     vtx = "[[Q]]"
 )
 

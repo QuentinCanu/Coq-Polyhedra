@@ -32,8 +32,6 @@ Definition cmp_vect (u : array bigQ) (v : array bigQ):=
 
 (*sat_lex Ax b I verifies that AX >=lex b and (AX)_I == b_I*)
 
-
-
 Definition sat_cmp (Ax : array bigQ) (b : array bigQ)
   (M : array (array bigQ)):=
   IFold.ifold (fun i cmp=>
@@ -60,7 +58,7 @@ Definition update
   (I : array Uint63.int) (r s : Uint63.int)
   (M : array (array bigQ)) (u v: array bigQ): 
   (array (array bigQ)) :=
-  let M' := PArrayUtils.mk_fun (fun _ => make 1%uint63 0%bigQ) (length M) (default M) in
+  let M' := PArrayUtils.mk_fun (fun _ => make (length M.[0]) 0%bigQ) (length M) (default M) in
   let Au := BigQUtils.bigQ_mul_mx_col A u in
   let Is := I.[s] in
   let Ms := M.[Is] in
