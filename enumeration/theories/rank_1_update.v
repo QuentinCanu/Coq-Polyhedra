@@ -58,7 +58,7 @@ Definition sat_lex (A : array (array bigQ)) (b : array bigQ)
 Definition update
   (A : array (array bigQ))
   (I : array Uint63.int) (r s : Uint63.int)
-  (M : array (array bigQ)) (u : array bigQ) (v : array bigQ) (vr : bigQ): 
+  (M : array (array bigQ)) (u v: array bigQ) (vr : bigQ): 
   (array (array bigQ)) :=
   let M' := PArrayUtils.mk_fun (fun _ => make 1%uint63 0%bigQ) (length M) (default M) in
   let Au := BigQUtils.bigQ_mul_mx_col A u in
