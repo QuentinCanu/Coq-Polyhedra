@@ -4,6 +4,7 @@ import json, os
 import fractions as fc
 import argparse as argp
 import math, fractions, random as rd
+import networkx as nx
 from prerequisite import farkas as fk
 from prerequisite import core
 
@@ -85,8 +86,12 @@ def poly_scale(A,b):
 
 # Construct the graph of lex feasible bases + order of construction
 # -------------------------------------------------------------------
-def get_idx():
-    return 0
+def get_idx(graph_lex):
+    Graph = nx.Graph({ i : tuple(graph_lex[i]) for i in range(len(graph_lex))})
+    print(nx.closeness_centrality(Graph,0))
+    print(nx.closeness_centrality(Graph,21917))
+    dic = nx.closeness_centrality(Graph)
+    return max(dic,key=dic.get)
 
 def get_initial_basing_point(A, bases, idx):
     base = bases[idx]
@@ -117,47 +122,106 @@ def update(m, n, gmp_A, I, r, s, inv):
     return list_of_gmp_matrix(gmp_A * u * gmp_v),res
         
 
-def get_lex_graph(A,bases,idx,inv):
+def get_lex_graph(A,bases):
     m,n = len(A), len(A[0])
-    gmp_A = to_gmp_matrix(A)
-    invs = [None for _ in bases]
-    base = bases[idx]
-    invs[idx] = [inv[:,i] if i in set(base) else None for i in range(len(A))]
     bases_dic = {frozenset(base) : i for (i,base) in enumerate(bases)}
     graph = [set() for _ in bases]
-    order = []
+    for idx, base in enumerate(bases):
+        reg = len(graph[idx])
+        base_set = set(base)
+        for i in base:
+            if reg >= n:
+                break
+            for j in range(m):
+                if j not in base_set:
+                    nei_set = frozenset(base_set - {i} | {j})
+                    if nei_set in bases_dic.keys(): 
+                        idx_nei = bases_dic[nei_set]
+                        if idx_nei not in graph[idx]:
+                            graph[idx].add(idx_nei)
+                            reg += 1
+                            break
+    return [sorted(elt) for elt in graph]
+
+def enter_exit(I,J):
+    IJ = I ^ J
+    return (J & IJ).pop(), (I & IJ).pop()
+
+def visit_lex_graph(A,bases,graph_lex,idx,inv):
+    m,n = len(A), len(A[0])
+    gmp_A = to_gmp_matrix(A)
+    base = bases[idx]
+    invs = [None for _ in bases]
+    invs[idx] = [None for _ in range(m)]
+    for k,Ik in enumerate(base): 
+        invs[idx][Ik] = inv[:,k]
     pred = [(0,0,0) for _ in bases]
     pred_vect = [[['0']] for _ in bases]
-    visited = {i : False for i in bases_dic.keys()}
-    visited[frozenset(bases[idx])] = True
-    queue = [idx]
+    visited = [False for _ in bases]
+    queue = [(idx,idx)]
+    visited[idx] = True
     pointer = 0
-    while True:
-        if pointer >= len(queue):
-            break
-        idx_base = queue[pointer]
-        order.append(idx_base)
-        reg = len(graph[idx_base])
-        if reg < n:
+    while pointer < len(queue):
+        idx_base, idx_pred = queue[pointer]
+        if not visited[idx_base]:
+            visited[idx_base] = True
+            for idx_nei in graph_lex[idx_base]:
+                if not visited[idx_nei]:
+                    queue.append(idx_nei, idx_base)
             base = bases[idx_base]
-            base_set = set(base)
-            for s in range(len(bases[idx_base])):
-                for r in range(m):
-                    if r not in base_set:
-                        nei_set = frozenset(base_set - {base[s]} | {r})
-                        if nei_set in bases_dic:
-                            idx_nei = bases_dic[nei_set]
-                            graph[idx_base].add(idx_nei)
-                            if not visited[nei_set]:
-                                visited[nei_set] = True
-                                queue.append(idx_nei)
-                                pred[idx_nei] = (idx_base,r,s)
-                                M, inv = update(m, n, gmp_A, base, r, s, invs[idx_base])
-                                invs[idx_nei] = inv
-                                pred_vect[idx_nei] = M
+            pred = bases[idx_pred]
+            r,s_ = enter_exit(set(pred),set(base))
+            s = pred.index(s_)
+            inv = invs[idx_pred]
+            M,inv_base = update(m,n,gmp_A,pred,r,s,inv)
+            invs[idx_base] = inv_base
+            pred[idx_base] = (idx_pred,r,s)
+            pred_vect[idx_base] = M
         pointer += 1
-        print(pointer)
-    return idx, [sorted(elt) for elt in graph], order[1:], pred, pred_vect
+    return [elt for elt,_ in queue[1:]], pred, pred_vect
+
+
+# def get_lex_graph(A,bases,idx,inv):
+#     m,n = len(A), len(A[0])
+#     gmp_A = to_gmp_matrix(A)
+#     invs = [None for _ in bases]
+#     base = bases[idx]
+#     invs[idx] = [inv[:,i] if i in set(base) else None for i in range(len(A))]
+#     bases_dic = {frozenset(base) : i for (i,base) in enumerate(bases)}
+#     graph = [set() for _ in bases]
+#     order = []
+#     pred = [(0,0,0) for _ in bases]
+#     pred_vect = [[['0']] for _ in bases]
+#     visited = {i : False for i in bases_dic.keys()}
+#     visited[frozenset(bases[idx])] = True
+#     queue = [idx]
+#     pointer = 0
+#     while True:
+#         if pointer >= len(queue):
+#             break
+#         idx_base = queue[pointer]
+#         order.append(idx_base)
+#         reg = len(graph[idx_base])
+#         if reg < n:
+#             base = bases[idx_base]
+#             base_set = set(base)
+#             for s in range(len(bases[idx_base])):
+#                 for r in range(m):
+#                     if r not in base_set:
+#                         nei_set = frozenset(base_set - {base[s]} | {r})
+#                         if nei_set in bases_dic:
+#                             idx_nei = bases_dic[nei_set]
+#                             graph[idx_base].add(idx_nei)
+#                             if not visited[nei_set]:
+#                                 visited[nei_set] = True
+#                                 queue.append(idx_nei)
+#                                 pred[idx_nei] = (idx_base,r,s)
+#                                 M, inv = update(m, n, gmp_A, base, r, s, invs[idx_base])
+#                                 invs[idx_nei] = inv
+#                                 pred_vect[idx_nei] = M
+#         pointer += 1
+#         print(pointer)
+#     return idx, [sorted(elt) for elt in graph], order[1:], pred, pred_vect
 
 # Construct the graph of vertices + certificates related to the image graph
 # -------------------------------------------------------------------
@@ -246,12 +310,16 @@ def main():
     A,b = get_polyhedron_from_lrs(name)
     A,b = poly_scale(A,b)
     bases, bas2vtx, bas2det = get_bases_from_lrs(name)
-    idx = get_idx()
     # init = get_initial_basing_point(A, bases, idx)
-    inv = get_initial_basing_point(A,bases,idx)
     # m,n = len(A), len(A[0])
-    idx, graph_lex, order, pred, pred_vect = get_lex_graph(A,bases,idx,inv)
+    graph_lex = get_lex_graph(A, bases)
+    idx = get_idx(graph_lex)
+    inv = get_initial_basing_point(A,bases,idx)
+
+    order, pred, pred_vect = visit_lex_graph(A,bases,graph_lex,idx,inv)
+    # idx, graph_lex, order, pred, pred_vect = get_lex_graph(A,bases,idx,inv)
     vtx = get_unsrt_vtx(bases, bas2vtx)
+
     # morph, morph_inv = get_morph(bases,vtx,bas2vtx)
     # graph_vtx = get_graph_vtx(graph_lex,morph,len(vtx))
     # edge_inv = get_edge_inv(graph_lex,graph_vtx,morph)
