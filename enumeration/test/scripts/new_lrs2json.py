@@ -157,6 +157,7 @@ def visit_lex_graph(A,bases,graph_lex,idx,inv):
     pred_vect = [[['0']] for _ in bases]
     visited = [False for _ in bases]
     queue = [(idx,None)]
+    order = []
     pointer = 0
     while pointer < len(queue):
         idx_base, idx_pred = queue[pointer]
@@ -166,6 +167,7 @@ def visit_lex_graph(A,bases,graph_lex,idx,inv):
                 if not visited[idx_nei]:
                     queue.append((idx_nei, idx_base))
             if idx_pred is not None:
+                order.append(idx_base)
                 J = bases[idx_base]
                 I = bases[idx_pred]
                 r,s_ = enter_exit(set(I),set(J))
@@ -176,7 +178,7 @@ def visit_lex_graph(A,bases,graph_lex,idx,inv):
                 pred[idx_base] = (idx_pred,r,s)
                 pred_vect[idx_base] = M
         pointer += 1
-    return [elt for elt,_ in queue[1:]], pred, pred_vect
+    return order, pred, pred_vect
 
 
 # def get_lex_graph(A,bases,idx,inv):
@@ -311,7 +313,8 @@ def main():
     # init = get_initial_basing_point(A, bases, idx)
     # m,n = len(A), len(A[0])
     graph_lex = get_lex_graph(A, bases)
-    idx = get_idx(graph_lex)
+    # idx = get_idx(graph_lex)
+    idx = 21917
     inv = get_initial_basing_point(A,bases,idx)
 
     order, pred, pred_vect = visit_lex_graph(A,bases,graph_lex,idx,inv)
