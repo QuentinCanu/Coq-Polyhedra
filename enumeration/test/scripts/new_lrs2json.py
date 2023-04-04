@@ -88,8 +88,6 @@ def poly_scale(A,b):
 # -------------------------------------------------------------------
 def get_idx(graph_lex):
     Graph = nx.Graph({ i : tuple(graph_lex[i]) for i in range(len(graph_lex))})
-    print(nx.closeness_centrality(Graph,0))
-    print(nx.closeness_centrality(Graph,21917))
     dic = nx.closeness_centrality(Graph)
     return max(dic,key=dic.get)
 
@@ -150,16 +148,15 @@ def enter_exit(I,J):
 def visit_lex_graph(A,bases,graph_lex,idx,inv):
     m,n = len(A), len(A[0])
     gmp_A = to_gmp_matrix(A)
-    base = bases[idx]
+    base_init = bases[idx]
     invs = [None for _ in bases]
     invs[idx] = [None for _ in range(m)]
-    for k,Ik in enumerate(base): 
+    for k,Ik in enumerate(base_init): 
         invs[idx][Ik] = inv[:,k]
     pred = [(0,0,0) for _ in bases]
     pred_vect = [[['0']] for _ in bases]
     visited = [False for _ in bases]
-    queue = [(idx,idx)]
-    visited[idx] = True
+    queue = [(idx,None)]
     pointer = 0
     while pointer < len(queue):
         idx_base, idx_pred = queue[pointer]
@@ -167,16 +164,17 @@ def visit_lex_graph(A,bases,graph_lex,idx,inv):
             visited[idx_base] = True
             for idx_nei in graph_lex[idx_base]:
                 if not visited[idx_nei]:
-                    queue.append(idx_nei, idx_base)
-            base = bases[idx_base]
-            pred = bases[idx_pred]
-            r,s_ = enter_exit(set(pred),set(base))
-            s = pred.index(s_)
-            inv = invs[idx_pred]
-            M,inv_base = update(m,n,gmp_A,pred,r,s,inv)
-            invs[idx_base] = inv_base
-            pred[idx_base] = (idx_pred,r,s)
-            pred_vect[idx_base] = M
+                    queue.append((idx_nei, idx_base))
+            if idx_pred is not None:
+                J = bases[idx_base]
+                I = bases[idx_pred]
+                r,s_ = enter_exit(set(I),set(J))
+                s = I.index(s_)
+                inv_pred = invs[idx_pred]
+                M, inv_base = update(m,n,gmp_A,I,r,s,inv_pred)
+                invs[idx_base] = inv_base
+                pred[idx_base] = (idx_pred,r,s)
+                pred_vect[idx_base] = M
         pointer += 1
     return [elt for elt,_ in queue[1:]], pred, pred_vect
 
