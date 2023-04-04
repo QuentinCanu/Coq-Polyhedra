@@ -56,10 +56,9 @@ Definition sat_lex (A : array (array bigQ)) (b : array bigQ)
 Definition update
   (A : array (array bigQ))
   (I : array Uint63.int) (r s : Uint63.int)
-  (M : array (array bigQ)) (u v: array bigQ): 
+  (M : array (array bigQ)) (Auv: array (array bigQ)): 
   (array (array bigQ)) :=
   let M' := PArrayUtils.mk_fun (fun _ => make (length M.[0]) 0%bigQ) (length M) (default M) in
-  let Au := BigQUtils.bigQ_mul_mx_col A u in
   let Is := I.[s] in
   let Ms := M.[Is] in
   let Mrs := Ms.[r] in
@@ -68,10 +67,10 @@ Definition update
     let Ik := I.[k] in
     let M'Ik := make (length M.[Ik]) (default M.[Ik]) in
     let M'Ik := IFold.ifold (fun l c =>
-      c.[l <- (M.[Ik].[l] + v.[k] * Au.[l])%bigQ]) (length M.[Ik]) M'Ik in M'.[Ik <- M'Ik]) 
+      c.[l <- (M.[Ik].[l] + Auv.[k].[l])%bigQ]) (length M.[Ik]) M'Ik in M'.[Ik <- M'Ik]) 
     (length I) M' in
   let M'r := IFold.ifold (fun l c=>
-    c.[l <- (M.[Is].[l] + v.[s] * Au.[l])%bigQ]
+    c.[l <- (M.[Is].[l] + Auv.[s].[l])%bigQ]
     ) (length M.[Is]) (make (length M.[Is]) 0%bigQ)
   in
   let M' := M'.[r <- M'r] in M'.
@@ -82,16 +81,16 @@ Definition explore
   (certif_bases : array (array int63))
   (certif_vtx : array (array bigQ))
   (certif_pred : array (int63 * (int63 * int63)))
-  (certif_pred_vect : array (array bigQ * array bigQ))
+  (certif_pred_vect : array (array (array bigQ)))
   main (order : array int63) (steps : int63):=
   IFold.ifold
     (fun i main=>
        let (idx,rs) := certif_pred.[order.[i]] in
        let (r,s) := rs in
-       let '(u, v) := certif_pred_vect.[order.[i]] in
+       let Auv := certif_pred_vect.[order.[i]] in
        let I := certif_bases.[idx] in
        if main.[idx] is Some M then
-         let M' := update A I r s M u v in
+         let M' := update A I r s M Auv in
          if sat_lex A b certif_bases.[order.[i]] certif_vtx.[order.[i]] M' 
          then main.[order.[i] <- Some M'] else main
        else main) steps main.

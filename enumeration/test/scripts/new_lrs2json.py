@@ -113,7 +113,8 @@ def update(m, n, gmp_A, I, r, s, inv):
             Mrk = (Ar * inv[I[k]])[0,0]
             res[I[k]] = (Mrs * inv[I[k]] - Mrk * inv[I[s]])/Mrs
             v[k] = Mrk.element / (Mrs.element * mult)
-    return list_of_gmp_matrix(u)[0],[bigq(QQ_red(elt)) for elt in v],res
+    gmp_v = DomainMatrix([v],(1,n),QQ)
+    return list_of_gmp_matrix(gmp_A * u * gmp_v),res
         
 
 def get_lex_graph(A,bases,idx,inv):
@@ -126,7 +127,7 @@ def get_lex_graph(A,bases,idx,inv):
     graph = [set() for _ in bases]
     order = []
     pred = [(0,0,0) for _ in bases]
-    pred_vect = [(['0'],['0']) for _ in bases]
+    pred_vect = [[['0']] for _ in bases]
     visited = {i : False for i in bases_dic.keys()}
     visited[frozenset(bases[idx])] = True
     queue = [idx]
@@ -151,9 +152,9 @@ def get_lex_graph(A,bases,idx,inv):
                                 visited[nei_set] = True
                                 queue.append(idx_nei)
                                 pred[idx_nei] = (idx_base,r,s)
-                                u, v, inv = update(m, n, gmp_A, base, r, s, invs[idx_base])
+                                M, inv = update(m, n, gmp_A, base, r, s, invs[idx_base])
                                 invs[idx_nei] = inv
-                                pred_vect[idx_nei] = (u,v)
+                                pred_vect[idx_nei] = M
         pointer += 1
         print(pointer)
     return idx, [sorted(elt) for elt in graph], order[1:], pred, pred_vect

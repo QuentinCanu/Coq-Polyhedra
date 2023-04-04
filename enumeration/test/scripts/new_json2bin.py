@@ -21,7 +21,7 @@ DESCRIPTORS = dict(
     steps = "I",
     order = "[I]",
     pred = "[(I,I,I)]",
-    pred_vect = "[([Q],[Q])]",
+    pred_vect = "[[[Q]]]",
     vtx = "[[Q]]"
 )
 
