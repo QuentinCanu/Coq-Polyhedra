@@ -1,4 +1,4 @@
-(* ------ *) Require Import Uint63 PArray.
+(* ------ Require Import Uint63 PArray.
 From Bignums Require Import BigNumPrelude.
 From Bignums Require Import BigQ.
 
@@ -152,3 +152,4 @@ Extract Inlined Constant fst  => "fst".
 Extract Inlined Constant snd  => "snd".
 
 Extraction "cube" Cube3.test. *)
+ *)
