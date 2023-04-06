@@ -157,11 +157,14 @@ def visit_lex_graph(A,bases,graph_lex,idx,inv):
     pred_vect = [[['0']] for _ in bases]
     visited = [False for _ in bases]
     queue = [(idx,None)]
+    counter = 0
     order = []
     pointer = 0
     while pointer < len(queue):
         idx_base, idx_pred = queue[pointer]
         if not visited[idx_base]:
+            counter += 1
+            print(counter)
             visited[idx_base] = True
             for idx_nei in graph_lex[idx_base]:
                 if not visited[idx_nei]:
@@ -314,7 +317,7 @@ def main():
     # m,n = len(A), len(A[0])
     graph_lex = get_lex_graph(A, bases)
     # idx = get_idx(graph_lex)
-    idx = 21917
+    idx = 2266
     inv = get_initial_basing_point(A,bases,idx)
 
     order, pred, pred_vect = visit_lex_graph(A,bases,graph_lex,idx,inv)
@@ -333,6 +336,7 @@ def main():
     tgtjson['A'] = A
     tgtjson['b'] = b
     tgtjson['bases'] = bases
+    tgtjson['graph_lex'] = graph_lex
     tgtjson['idx'] = idx
     tgtjson['inv'] = list_of_gmp_matrix(inv)
     tgtjson['order'] = order

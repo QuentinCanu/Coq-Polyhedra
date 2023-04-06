@@ -89,10 +89,10 @@ Definition explore
        let (r,s) := rs in
        let Auv := certif_pred_vect.[order.[i]] in
        let I := certif_bases.[idx] in
-       if main.[idx] is Some M then
+       if main.[idx] is Some (M, iters) then
          let M' := update A I r s M Auv in
          if sat_lex A b certif_bases.[order.[i]] certif_vtx.[order.[i]] M' 
-         then main.[order.[i] <- Some M'] else main
+         then main.[order.[i] <- Some (M', Uint63.succ iters)] else main
        else main) steps main.
 
 Definition initial
@@ -111,11 +111,11 @@ Definition initial_main
   (certif_bases : array (array int63))
   (certif_vtx : array (array bigQ))
   (idx : int63) (inv : array (array bigQ)):
-  array (option (array (array bigQ))) :=
+  array (option ((array (array bigQ)) * int63)) :=
   let main := make (length certif_bases) None in
   let M := initial A b certif_bases idx inv in
   if sat_lex A b certif_bases.[idx] certif_vtx.[idx] M then 
-  main.[idx <- Some M] else main.
+  main.[idx <- Some (M,0%uint63)] else main.
 (*
   let '(x, B, M, q) := initial A b certif_bases idx x inv q in
   if sat_lex M q b (certif_bases.[idx]) then main.[idx <- Some (x, B, M, q)] else main.
@@ -129,6 +129,11 @@ Definition vertex_certif A b certif_bases certif_vtx
   certif_pred certif_pred_vect idx inv order steps:=
   let main := explore_from_initial A b certif_bases certif_vtx certif_pred certif_pred_vect idx inv order steps in
   IFold.ifold (fun i res => res && isSome main.[order.[i]]) steps true.
+
+Definition nb_iters 
+  A b certif_bases certif_vtx certif_pred certif_pred_vect idx inv order steps:=
+  let main := explore_from_initial A b certif_bases certif_vtx certif_pred certif_pred_vect idx inv order steps in
+  IFold.ifold (fun i res => if main.[order.[i]] is Some (_, iters) then if (res <? iters)%uint63 then iters else res else res) steps 0%uint63.
 
 
 End Rank1Certif.
@@ -176,4 +181,4 @@ Definition certif_pred_correct certif_bases certif_pred :=
     let I := certif_bases.[idx] in
     adjacent I J r s) (length certif_bases).
 
-End CertifPredVerif.
+End CertifPredVerif. 
