@@ -28,8 +28,10 @@ Definition cmp_vect (u : array bigQ) (v : array bigQ):=
 (* if ((M.[Ik].[l] - M'.[Ik].[l]) * Mrs ?= M.[Is].[l] * M.[Ik].[r])%bigQ is Eq then true else false) *)
 
 Definition memory_update (memory : array (array (array (option bigQ))))
-(k i j :int63) (v : bigQ) : (array (array (array (option bigQ)))):=
-  memory.[k <- memory.[k].[j <- memory.[k].[j].[i <- Some v]]].
+  (k i j :int63) (v : bigQ) : (array (array (array (option bigQ)))):=
+  let col := memory.[k].[j].[i <- Some v] in
+  let M := memory.[k].[j <- col] in
+  memory.[k <- M].
 
 Fixpoint eval
   (fuel : nat)
@@ -48,7 +50,7 @@ Fixpoint eval
         let (Mis,memory) := eval n certif_bases certif_pred certif_updates kI i I.[s] memory in
         if Mis is Some mis then
           let m'ir := certif_updates.[kJ].[r].[i] in
-          if (mrs * m'ir ?= - mis)%bigQ is Eq then 
+          if (mrs * m'ir ?= - mis)%bigQ is Eq then
             (Some m'ir, memory_update memory kJ i r m'ir)
           else
             (None,memory)
@@ -66,7 +68,7 @@ Fixpoint eval
                 (Some m'ij, memory_update memory kJ i j m'ij)
               else (None,memory)
             else (None,memory)
-          else (None,memory) 
+          else (None,memory)
         else (None,memory)
     else (None, memory)
   else (None, memory).
@@ -77,52 +79,92 @@ Definition lazy_sat_pert
   certif_updates
   (idx_base : int63)
   memory
-  (pt k : int63) (sat_vect : array comparison):=
+  (k : int63) (sat_vect : array comparison):=
   let I := certif_bases.[idx_base] in
-  IFold.ifold (fun i '(acc,memory)=>
-    let cmp := acc.[i] in
-    if cmp is Eq then
-      if (I.[pt] =? k)%uint63 then
-        let (Value,memory) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i I.[pt] memory in
-        if Value is Some value then
-          (acc.[i <- if (i =? k)%uint63 then (-1 ?= value)%bigQ else (0 ?= value)%bigQ],memory)
-        else (acc.[i <- Lt],memory)
-      else (acc.[i <- if (i =? k)%uint63 then Gt else Eq], memory)
-    else (acc,memory)
-  ) (length sat_vect) (sat_vect,memory).
+  let '(_, res, memory) := IFold.ifold
+    (fun i '(j, acc, memory)=>
+       if (I.[j] =? i)%uint63 then
+         ((j+1)%uint63, acc, memory) (* no-op when i is a line in the basis *)
+       else
+         if acc.[i] is Eq then
+           let '(value, memory) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i I.[k] memory in
+           if value is Some v then
+             (j, acc.[i <- (v ?= 0)%bigQ], memory)
+           else
+             (j, acc.[i <- Lt], memory) (* HACK here, to be fixed *)
+         else
+           (j, acc, memory) (* no-op since we only need to break inequality ties *)
+    ) (length sat_vect) (0%uint63, sat_vect, memory)
+  in
+  (res, memory).
 
-
-Definition lazy_sat (A : matrix) (b x : vector) (I : basis)
-  memory:=
-  let sat_vect := (cmp_vect (BigQUtils.bigQ_mul_mx_col A x) b) in
-  let lex_vect := IFold.ifold (fun i acc =>
-    lazy_sat_pert i
-  ) (length A) sat_vect in
-  IFold.ifold (fun i '(continue,k)=>
-    if ~~ continue then (continue,k) else
-      if (i =? I.[k])%uint63 then
-        if cmp.[i] is Eq then (true,Uint63.succ k) else (false,k)
-      else
-        if cmp.[i] is Lt then (false, k) else (true, k) 
-  ) (length lex_vect) (true,0%uint63).
-
-
-Definition lazy_vertex_certif 
-  (A : matrix) (b : vector)
-  (certif_vtx : array vector)
+Definition lazy_check_basis (A : matrix) (b : vector)
   (certif_bases : array basis)
   (certif_pred : array (int63 * (int63 * int63)))
-  (certif_updates : array matrix)
-  (idx : int63) (order : array int63) (steps : int63):=
-  (IFold.ifold (fun i '(continue, memory)=>
-    if ~~ continue then (continue, memory) else
-      let kJ := order.[i] in
-      let J := certif_bases.[kJ] in
-      let '(kI, rs) := certif_pred.[kJ] in let '(r,s) := rs in
-      let M := certif_updates.[kI] in
-      let x := certif_vtx.[kJ] in
-      lazy_sat 
-  ) (initial_todo) steps).1.
+  certif_updates
+  (certif_vtx : array vector)
+  (idx_base : int63)
+  memory :=
+  let I := certif_bases.[idx_base] in
+  let '(I0, (r, s)) := certif_pred.[idx_base] in
+  let '(Mrs, memory) :=
+    eval Uint63.size certif_bases certif_pred certif_updates I0 r (certif_bases.[I0]).[s] memory in
+  if Mrs is Some Mrs then
+    if (Mrs ?= 0)%bigQ is Eq then (false, memory)
+    else
+      let x := certif_vtx.[idx_base] in
+      let sat_vect := (cmp_vect (BigQUtils.bigQ_mul_mx_col A x) b) in
+      let '(_, sat_lex, memory) :=
+        IFold.ifold
+          (fun i '(j, acc, memory) =>
+             if (I.[j] =? i)%uint63 then
+               let '(acc, memory) :=
+                 lazy_sat_pert certif_bases certif_pred certif_updates idx_base memory j acc
+               in
+               ((j+1)%uint63, acc, memory)
+             else
+               (j, acc, memory)) (length A) (0%uint63, sat_vect, memory)
+      in
+      let '(_, res) :=
+        IFold.ifold
+          (fun i '(j, res) =>
+             if res then
+               if (i =? I.[j])%uint63 then
+                 if sat_lex.[i] is Eq then ((j+1)%uint63, res)
+                 else (j, false)
+               else
+                 if sat_lex.[i] is Gt then ((j+1)%uint63, res)
+                 else (j, false)
+             else
+               (j, false)) (length sat_lex) (0%uint63, true)
+      in
+      (res, memory)
+  else
+    (false, memory).
+
+Definition build_initial_memory certif_updates m n N idx :=
+  let mem := PArrayUtils.mk_fun (fun _ => PArrayUtils.mk_fun (fun _ => make m None) m (make m None)) N (make m (make m None)) in
+  IFold.ifold (fun i mem =>
+                 IFold.ifold (fun j mem =>
+                                memory_update mem idx i j certif_updates.[idx].[j].[i])
+                             n mem) m mem.
+
+Definition lazy_check_all_bases
+  (A : matrix) (b : vector)
+  (certif_bases : array basis)
+  (certif_pred : array (int63 * (int63 * int63)))
+  certif_updates
+  (certif_vtx : array vector)
+  (idx : int63) (order : array int63) (steps : int63) :=
+  let memory := build_initial_memory certif_updates (length A) (length A.[0]) (length certif_bases) idx in
+  let res := IFold.ifold
+              (fun i '(acc, memory) =>
+                 if acc then
+                   lazy_check_basis A b certif_bases certif_pred certif_updates certif_vtx i memory
+                 else
+                   (acc, memory)) steps (true, memory)
+  in
+  res.1.
 
 (* ------------------------------------------------------------------ *)
 Definition sat_pert (Ax : (array bigQ)) (m : int63) (cmp : array comparison):=
@@ -138,7 +180,7 @@ Definition cmp_vect (u : array bigQ) (v : array bigQ):=
 Definition sat_cmp (Ax : array bigQ) (b : array bigQ)
   (M : array (array bigQ)):=
   IFold.ifold (fun i cmp=>
-    sat_pert M.[i] i cmp) (length M) 
+    sat_pert M.[i] i cmp) (length M)
   (cmp_vect Ax b).
 
 Definition sat_lex (A : array (array bigQ)) (b : array bigQ)
@@ -159,7 +201,7 @@ Definition sat_lex (A : array (array bigQ)) (b : array bigQ)
 Definition all_sat_lex A b certif_bases certif_vtx certif_updates
   order steps :=
   IFold.iall (fun i=>
-    let idx := order.[i] in 
+    let idx := order.[i] in
     let I := certif_bases.[idx] in
     let x := certif_vtx.[idx] in
     let M := certif_updates.[idx] in
@@ -180,7 +222,7 @@ Definition check_update
     if (k =? s)%uint63 then true else
     let Ik := I.[k] in
     IFold.iall (fun l=>
-      if ((M.[Ik].[l] - M'.[Ik].[l]) * Mrs ?= M.[Is].[l] * M.[Ik].[r])%bigQ is Eq then true else false) 
+      if ((M.[Ik].[l] - M'.[Ik].[l]) * Mrs ?= M.[Is].[l] * M.[Ik].[r])%bigQ is Eq then true else false)
     (length M.[Ik])) (length I).
 
 Definition look_all_updates
@@ -194,8 +236,8 @@ Definition look_all_updates
     let (idx,rs) := certif_pred.[order.[i]] in
     let (r,s) := rs in
     let I := certif_bases.[idx] in
-    let M := certif_updates.[idx] in 
-      acc.[i <- check_update I r s M M']) 
+    let M := certif_updates.[idx] in
+      acc.[i <- check_update I r s M M'])
     steps (make steps false)
   in res.
   (* in let res := res.[idx <- true] in res. *)
