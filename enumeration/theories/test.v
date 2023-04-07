@@ -37,12 +37,29 @@ Definition certif_bases := [|
 |[|0|0|]|]%uint63.
 
 Definition idx := 0%uint63.
-Definition x := [|2;0|0|]%bigQ.
-Definition inv := [|
-  [| -1; -1|0|];
-  [| -1; 1|0|]
-|[|0|0|]|]%bigQ.
-Definition q := (-2)%bigZ.
+Definition certif_vtx :=
+  [|
+   [| -1;  0 |0|];
+   [|  0; -1 |0|];
+   [|  0;  1 |0|];
+   [|  1;  0 |0|]
+  | [|0; 0|0|]|]%bigQ.
+
+(*Definition inv := [|
+  [| -1 # 2; -1 # 2|0|];
+  [| -1 # 2; 1 # 2|0|]
+|[|0|0|]|]%bigQ.*)
+
+Definition M0 :=
+ [|
+   [| -1; 0; 0; 1 |0|];
+   [| 0; -1; 1; 0 |0|];
+   [| 0; 0; 0; 0 |0|];
+   [| 0; 0; 0; 0 |0|]
+  | [|0|0|] |]%bigQ.
+
+
+Definition mem0 := Eval vm_compute in (R1.build_initial_memory [| M0| M0 |] 4 2 4 0%int63).
 
 Definition certif_pred :=[|
   (0,(0,0));
@@ -54,25 +71,29 @@ Definition certif_pred :=[|
 Definition order := [|1;2;3|0|]%uint63.
 Definition steps := length order.
 
-Time Compute (R1.explore_from_initial A b certif_bases certif_pred idx x inv q order steps).
+Definition certif_updates := [| M0 | M0 |].
 
+Definition mem1 :=
+  Eval vm_compute in
+  (R1.lazy_check_basis A b certif_bases certif_pred
+    certif_updates
+    certif_vtx 1%uint63 mem0).2.
 
-(* Time Definition init := Eval vm_compute in R1.initial A b certif_bases idx x inv q.
-Time Definition init_main := Eval vm_compute in R1.initial_main A b certif_bases idx x inv q.
-Time Compute let (idx,rs) := certif_pred.[order.[0]] in
-let (r,s) := rs in
-let I := certif_bases.[idx] in
-if init_main.[idx] is Some (x, B, M, q) then
-  let '(x', B', M', q') := R1.update b I r s x B M q in
-  if R1.sat_lex M' q' b certif_bases.[order.[0]] then init_main.[order.[0] <- Some (x', B', M', q')] else init_main
-else init_main. *)
-(* Let x' := Eval vm_compute in main.1.1.1.
-Let B' := Eval vm_compute in main.1.1.2.
-Let M' := Eval vm_compute in main.1.2.
-Let q' := Eval vm_compute in main.2. *)
+Definition mem2 :=
+ Eval vm_compute in
+  (R1.lazy_check_basis A b certif_bases certif_pred
+    certif_updates
+    certif_vtx 2%uint63 mem1).2.
 
-(* Compute R1.update b certif_bases.[0] 2 1 x' B' M' q'. *)
+(*Eval vm_compute in
+  (R1.lazy_check_basis A b certif_bases certif_pred
+    certif_updates
+    certif_vtx 3%uint63 mem2).*)
 
+Definition test := Eval vm_compute in
+  R1.lazy_check_all_bases  A b certif_bases certif_pred
+    certif_updates
+    certif_vtx 0%uint63 order steps.
 
 End Cross2.
 
@@ -100,14 +121,27 @@ Definition certif_bases := [|
   [|3;4;5|0|]
 |[|0|0|]|]%uint63.
 
-Definition idx := 0%uint63.
-Definition x := [|(-1);(-1);(-1)|0|]%bigQ.
-Definition inv := [|
-  [|1;0;0|0|];
-  [|0;1;0|0|];
-  [|0;0;1|0|]
- |[|0|0|]|]%bigQ.
-Definition q := 1%bigZ.
+Definition certif_vtx :=
+  [|
+    [|(-1);(-1);(-1)|0|];
+   [|(-1);(-1);1 |0|];
+   [|(-1);1; (-1) |0|];
+   [|(-1);1;1 |0|];
+   [|1;(-1);(-1) |0|];
+   [|1;(-1);1 |0|];
+   [|1;1;(-1) |0|];
+   [|1;1;1 |0 |]
+  | [|0|0|]|]%bigQ.
+
+
+Definition M0 :=
+  [|
+    [|(-1);0;0;1;0;0|0|];
+   [|0;(-1);0;0;1;0|0|];
+   [|0;0;(-1);0;0;1|0|]
+  |[|0|0|]|]%bigQ.
+
+Definition certif_updates := [| M0 | M0 |].
 
 Definition certif_pred :=[|
 (0,(0,0));
@@ -119,14 +153,13 @@ Definition certif_pred :=[|
 (2,(3,0));
 (5,(4,0))
 |(0,(0,0))|]%uint63.
-
-Definition det := R1.get_num 1%bigQ.
-
 Definition order := [|1;3;2;6;4;5;7|0|]%uint63.
 Definition steps := length order.
 
-Definition test := Eval vm_compute in R1.vertex_certif A b certif_bases certif_pred idx x inv q order steps.
-Print test.
+Definition test := Eval vm_compute in
+  R1.lazy_check_all_bases  A b certif_bases certif_pred
+    certif_updates
+    certif_vtx 0%uint63 order steps.
 
 End Cube3.
 

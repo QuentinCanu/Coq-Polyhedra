@@ -49,7 +49,7 @@ Fixpoint eval
       if (j =? r)%uint63 then
         let (Mis,memory) := eval n certif_bases certif_pred certif_updates kI i I.[s] memory in
         if Mis is Some mis then
-          let m'ir := certif_updates.[kJ].[r].[i] in
+          let m'ir := (*certif_updates.[kJ].[r].[i]*) (- mis / mrs)%bigQ in
           if (mrs * m'ir ?= - mis)%bigQ is Eq then
             (Some m'ir, memory_update memory kJ i r m'ir)
           else
@@ -63,7 +63,7 @@ Fixpoint eval
           if Mis is Some mis then
             let '(Mrj,memory) := eval n certif_bases certif_pred certif_updates kI r j memory in
             if Mrj is Some mrj then
-              let m'ij := certif_updates.[kJ].[j].[i] in
+              let m'ij := (*certif_updates.[kJ].[j].[i]*) (mij - mis * mrj / mrs)%bigQ in
               if ((mij - m'ij) * mrs ?= mis * mrj)%bigQ is Eq then
                 (Some m'ij, memory_update memory kJ i j m'ij)
               else (None,memory)
@@ -133,7 +133,7 @@ Definition lazy_check_basis (A : matrix) (b : vector)
                  if sat_lex.[i] is Eq then ((j+1)%uint63, res)
                  else (j, false)
                else
-                 if sat_lex.[i] is Gt then ((j+1)%uint63, res)
+                 if sat_lex.[i] is Gt then (j, res)
                  else (j, false)
              else
                (j, false)) (length sat_lex) (0%uint63, true)
@@ -160,12 +160,13 @@ Definition lazy_check_all_bases
   let res := IFold.ifold
               (fun i '(acc, memory) =>
                  if acc then
-                   lazy_check_basis A b certif_bases certif_pred certif_updates certif_vtx i memory
+                   lazy_check_basis A b certif_bases certif_pred certif_updates certif_vtx order.[i] memory
                  else
                    (acc, memory)) steps (true, memory)
   in
-  res.1.
+  res.
 
+(*
 (* ------------------------------------------------------------------ *)
 Definition sat_pert (Ax : (array bigQ)) (m : int63) (cmp : array comparison):=
   IFold.ifold (fun i cmp=>
@@ -255,6 +256,8 @@ Definition check_all_updates
 Definition vertex_certif A b certif_bases certif_vtx certif_pred certif_updates idx order steps :=
   all_sat_lex A b certif_bases certif_vtx certif_updates order steps &&
   check_all_updates certif_bases certif_pred certif_updates idx order steps.
+
+*)
 
 End Rank1Certif.
 
