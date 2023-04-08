@@ -77,7 +77,7 @@ def poly_scale(A,b):
             aux_A.append(bigq(fc.Fraction(scale[i] * A[i,j])))
         res_A.append(aux_A)
         res_b.append(bigq(fc.Fraction(scale[i] *  b[i,0])))
-    return res_A, res_b      
+    return res_A, res_b
 
 # Compute the initial basing point from which we compute our vertex certification
 # -------------------------------------------------------------------
@@ -97,7 +97,7 @@ def poly_scale(A,b):
 # -------------------------------------------------------------------
 
 def get_initial_basing_point(A,bases,idx):
-    res = [None for _ in bases] 
+    res = [None for _ in bases]
     base = bases[idx]
     A_I = [A[i] for i in base]
     gmp_A_I = to_gmp_matrix(A_I)
@@ -176,7 +176,7 @@ def get_vtx(bas2vtx):
     vtx_list = [i for i in bas2vtx.values()]
     vtx_list = sorted(set([tuple(map((lambda x : fractions.Fraction(x)), l)) for l in vtx_list]))
     return [list(map(str,elt)) for elt in vtx_list]
-        
+
 def get_morph(bases, vtx, bas2vtx):
     morph, morph_inv = [None for _ in bases], [None for _ in vtx]
     aux = {tuple(vtx[i]) : i for i in range(len(vtx))}
@@ -207,7 +207,7 @@ def get_edge_inv(G_lex, G_simpl, morf):
                 j_ = next(i for i,v in enumerate(G_simpl[morf[i]]) if v == morf[nei])
                 edge_inv[morf[i]][j_] = (i,nei)
     return edge_inv
-    
+
 # Get final certificates (Farkas, dim_full)
 # -------------------------------------------------------------------
 def get_farkas_cert(A, m, n):
@@ -272,7 +272,7 @@ def main():
     tgtjson['order'] = order
     tgtjson['steps'] = steps
     tgtdir = core.resource(name)
-    
+
     with open(os.path.join(tgtdir, f"{name}.json"), "w") as stream:
         json.dump(tgtjson,stream, indent=2)
 

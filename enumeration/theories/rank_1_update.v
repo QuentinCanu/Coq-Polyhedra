@@ -49,13 +49,11 @@ Fixpoint eval
       if (j =? r)%uint63 then
         let '(Mis,memory) := eval n certif_bases certif_pred certif_updates kI i I.[s] memory in
         if Mis is Some mis then
-          let m'ir := certif_updates.[kJ].[r].[i] (* (-mis / mrs)%bigQ *) in
+          let m'ir := certif_updates.[kJ].[r].[i] (*(-mis / mrs)%bigQ *) in
           if (mrs * m'ir ?= -mis)%bigQ is Eq then
             (Some m'ir, memory_update memory kJ i r m'ir)
-          else
-            (None,memory)
-        else
-        (None,memory)
+          else (None,memory)
+        else (None,memory)
       else
         let '(Mij,memory) := eval n certif_bases certif_pred certif_updates kI i j memory in
         if Mij is Some mij then
@@ -124,7 +122,7 @@ Definition lazy_check_basis (A : matrix) (b : vector)
                in
                ((j+1)%uint63, acc, memory)
              else
-               (j, acc, memory)) (length A) (0%uint63, sat_vect, memory)
+               (j, acc.[i <- Gt], memory)) (length A) (0%uint63, sat_vect, memory)
       in
       let '(_, res) :=
         IFold.ifold
