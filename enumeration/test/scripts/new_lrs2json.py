@@ -96,7 +96,7 @@ def poly_scale(A,b):
 # Construct the graph of lex feasible bases + order of construction
 # -------------------------------------------------------------------
 
-def get_initial_basing_point(A,bases,idx):
+def get_initial_basing_point(A,b,bases,idx):
     res = [None for _ in bases]
     base = bases[idx]
     A_I = [A[i] for i in base]
@@ -104,19 +104,22 @@ def get_initial_basing_point(A,bases,idx):
     inv = gmp_A_I.inv()
     gmp_A = to_gmp_matrix(A)
     M = - gmp_A * inv
-    init = [None for _ in range(len(A))]
+    b_I = [b[i] for i in base]
+    init = [None for _ in range(len(A)+1)]
+    init[0] = (gmp_A * inv * to_gmp_matrix(b_I)) - to_gmp_matrix(b)
     for i in range(len(base)):
-        init[base[i]] = M[:,i]
+        init[base[i]+1] = M[:,i]
     res[idx] = init
     return res
 
-def update(M,I,r,s):
-    Mrs = M[I[s]][r,0]
+def update(b,M,I,r,s):
+    Mrs = M[I[s]+1][r,0]
     Mp = [None for _ in range(len(M))]
-    Mp[r] = -M[I[s]]/Mrs
+    Mp[r+1] = -M[I[s]+1]/Mrs
+    Mp[0] = (Mrs * M[0] + (b - M[0])[r,0] * M[I[s]+1])/Mrs
     for i in range(len(I)):
         if i != s:
-            Mp[I[i]] = (Mrs * M[I[i]] - M[I[i]][r,0] * M[I[s]])/Mrs
+            Mp[I[i]+1] = (Mrs * M[I[i]+1] - M[I[i]+1][r,0] * M[I[s]+1])/Mrs
     return Mp
 
 def format_updates(updates):
@@ -126,8 +129,8 @@ def format_updates(updates):
         res.append(Mf)
     return res
 
-def get_lex_graph(A,bases,idx):
-    updates = get_initial_basing_point(A,bases,idx)
+def get_lex_graph(A,b,bases,idx):
+    updates = get_initial_basing_point(A,b,bases,idx)
     m, n = len(A), len(A[0])
     bases_dic = {frozenset(base) : i for (i,base) in enumerate(bases)}
     graph = [set() for _ in bases]
@@ -137,6 +140,7 @@ def get_lex_graph(A,bases,idx):
     visited[frozenset(bases[idx])] = True
     queue = [idx]
     pointer = 0
+    gmp_b = to_gmp_matrix(b)
     while True:
         if pointer >= len(queue):
             break
@@ -158,7 +162,7 @@ def get_lex_graph(A,bases,idx):
                                 visited[nei_set] = True
                                 queue.append(idx_nei)
                                 pred[idx_nei] = (idx_base,r,s)
-                                updates[idx_nei] = update(M,base,r,s)
+                                updates[idx_nei] = update(gmp_b,M,base,r,s)
         pointer += 1
     return [sorted(elt) for elt in graph], order[1:], pred, format_updates(updates)
 
@@ -250,7 +254,7 @@ def main():
     A,b = poly_scale(A,b)
     bases, bas2vtx, bas2det = get_bases_from_lrs(name)
     idx = 2
-    graph_lex, order, pred, updates = get_lex_graph(A,bases,idx)
+    graph_lex, order, pred, updates = get_lex_graph(A,b,bases,idx)
     steps = len(order)
     vtx = get_unsrt_vtx(bases, bas2vtx)
     # morph, morph_inv = get_morph(bases,vtx,bas2vtx)

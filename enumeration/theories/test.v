@@ -59,7 +59,7 @@ Definition M0 :=
   | [|0|0|] |]%bigQ.
 
 
-Definition mem0 := Eval vm_compute in (R1.build_initial_memory [| M0| M0 |] 4 2 4 0%int63).
+Definition mem0 := Eval vm_compute in (R1.build_initial_memory A certif_bases [| M0| M0 |] certif_vtx 4 2 0%int63).
 
 Definition certif_pred :=[|
   (0,(0,0));
@@ -77,13 +77,13 @@ Definition mem1 :=
   Eval vm_compute in
   (R1.lazy_check_basis A b certif_bases certif_pred
     certif_updates
-    certif_vtx 1%uint63 mem0).2.
+    certif_vtx 1%uint63 mem0).
 
 Definition mem2 :=
  Eval vm_compute in
   (R1.lazy_check_basis A b certif_bases certif_pred
     certif_updates
-    certif_vtx 2%uint63 mem1).2.
+    certif_vtx 2%uint63 mem1.2).
 
 (*Eval vm_compute in
   (R1.lazy_check_basis A b certif_bases certif_pred
@@ -94,6 +94,8 @@ Definition test := Eval vm_compute in
   R1.lazy_check_all_bases  A b certif_bases certif_pred
     certif_updates
     certif_vtx 0%uint63 order steps.
+
+Print test.
 
 End Cross2.
 

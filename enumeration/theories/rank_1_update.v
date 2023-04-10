@@ -44,24 +44,24 @@ Fixpoint eval
     if memory.[kJ].[j].[i] is Some value then (Some value,memory) else
     let J := certif_bases.[kJ] in
     let '(kI, rs) := certif_pred.[kJ] in let '(r,s) := rs in let I := certif_bases.[kI] in
-    let '(Mrs, memory) := eval n certif_bases certif_pred certif_updates kI r I.[s] memory in
+    let '(Mrs, memory) := eval n certif_bases certif_pred certif_updates kI r (I.[s]+1)%uint63 memory in
     if Mrs is Some mrs then
-      if (j =? r)%uint63 then
-        let '(Mis,memory) := eval n certif_bases certif_pred certif_updates kI i I.[s] memory in
+      if (j =? r+1)%uint63 then
+        let '(Mis,memory) := eval n certif_bases certif_pred certif_updates kI i (I.[s]+1)%uint63 memory in
         if Mis is Some mis then
-          let m'ir := certif_updates.[kJ].[r].[i] (*(-mis / mrs)%bigQ *) in
+          let m'ir := certif_updates.[kJ].[j].[i] (*(-mis / mrs)%bigQ *) in
           if (mrs * m'ir ?= -mis)%bigQ is Eq then
-            (Some m'ir, memory_update memory kJ i r m'ir)
+            (Some m'ir, memory_update memory kJ i j m'ir)
           else (None,memory)
         else (None,memory)
       else
         let '(Mij,memory) := eval n certif_bases certif_pred certif_updates kI i j memory in
         if Mij is Some mij then
-          let '(Mis,memory) := eval n certif_bases certif_pred certif_updates kI i I.[s] memory in
+          let '(Mis,memory) := eval n certif_bases certif_pred certif_updates kI i (I.[s]+1)%uint63 memory in
           if Mis is Some mis then
             let '(Mrj,memory) := eval n certif_bases certif_pred certif_updates kI r j memory in
             if Mrj is Some mrj then
-              let m'ij := certif_updates.[kJ].[j].[i] (*(mij - mis * mrj / mrs)%bigQ*)  in
+              let m'ij := certif_updates.[kJ].[j].[i] (*(mij - mis * mrj / mrs)%bigQ*) in
               if ((mij - m'ij) * mrs ?= mis * mrj)%bigQ is Eq then
                 (Some m'ij, memory_update memory kJ i j m'ij)
               else (None,memory)
@@ -85,7 +85,7 @@ Definition lazy_sat_pert
          ((j+1)%uint63, acc, memory) (* no-op when i is a line in the basis *)
        else
          if acc.[i] is Eq then
-           let '(value, memory) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i I.[k] memory in
+           let '(value, memory) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i (I.[k]+1)%uint63 memory in
            if value is Some v then
              (j, acc.[i <- (v ?= 0)%bigQ], memory)
            else
@@ -106,13 +106,16 @@ Definition lazy_check_basis (A : matrix) (b : vector)
   let I := certif_bases.[idx_base] in
   let '(I0, (r, s)) := certif_pred.[idx_base] in
   let '(Mrs, memory) :=
-    eval Uint63.size certif_bases certif_pred certif_updates I0 r (certif_bases.[I0]).[s] memory in
+    eval Uint63.size certif_bases certif_pred certif_updates I0 r ((certif_bases.[I0]).[s]+1)%uint63 memory in
   if Mrs is Some Mrs then
     if (Mrs ?= 0)%bigQ is Eq then (Some false, memory)
     else
-      (* (Some true, memory) *)
-      let x := certif_vtx.[idx_base] in
-      let sat_vect := (cmp_vect (BigQUtils.bigQ_mul_mx_col A x) b) in
+      let '(sat_vect, memory) := IFold.ifold
+                 (fun i '(acc, memory) =>
+                    let (Mi0, memory) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i 0%uint63 memory in
+                    if Mi0 is Some mi0 then
+                      (acc.[i <- (mi0 ?= 0)%bigQ], memory)
+                    else (acc, memory)) (length A) (make (length A) Eq, memory) in
       let '(_, sat_lex, memory) :=
         IFold.ifold
           (fun i '(j, acc, memory) =>
@@ -141,13 +144,19 @@ Definition lazy_check_basis (A : matrix) (b : vector)
   else
     (None, memory).
 
-Definition build_initial_memory (certif_bases : array basis) certif_updates m N idx :=
-  let mem := PArrayUtils.mk_fun (fun _ => PArrayUtils.mk_fun (fun _ => make m None) m (make m None)) N (make m (make m None)) in
+Definition build_initial_memory
+  (certif_bases : array basis) certif_updates (certif_vtx : array vector) m N idx :=
+  let mem := PArrayUtils.mk_fun (fun _ => PArrayUtils.mk_fun (fun _ => make m None) (m+1)%uint63 (make m None)) N (make (m+1)%uint63 (make m None)) in
+  let mem := IFold.ifold
+              (fun i mem => memory_update mem idx i 0 certif_updates.[idx].[0].[i])
+              m mem in
   let I := certif_bases.[idx] in
   IFold.ifold (fun i mem =>
-                 IFold.ifold (fun j mem =>
-                                memory_update mem idx i I.[j] certif_updates.[idx].[I.[j]].[i])
-                   (length I) mem) m mem.
+                 IFold.ifold
+                   (fun j mem =>
+                      memory_update mem idx i (I.[j]+1)%uint63 certif_updates.[idx].[I.[j]+1].[i])
+                   (length I) mem)
+    m mem.
 
 Definition lazy_check_all_bases
   (A : matrix) (b : vector)
@@ -156,7 +165,7 @@ Definition lazy_check_all_bases
   certif_updates
   (certif_vtx : array vector)
   (idx : int63) (order : array int63) (steps : int63) :=
-  let memory := build_initial_memory certif_bases certif_updates (length A) (length certif_bases) idx in
+  let memory := build_initial_memory certif_bases certif_updates certif_vtx (length A) (length certif_bases) idx in
   let res := IFold.ifold
               (fun i '(acc, memory) =>
                  match acc with
