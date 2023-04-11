@@ -171,8 +171,8 @@ def get_heap(A,bases,idx,pred,init):
             new_val = - Msp/Mrs
         else:
             Mpq = eval(kI,p,q)
-            Mrq = eval(kI,r,q)
             Mps = eval(kI,p,I[s]+1)
+            Mrq = eval(kI,r,q)
             new_val = (Mrs * Mpq - Mrq * Mps) / Mrs
         memory[kJ][q][p] = new_val
         heap.append(new_val)
@@ -291,7 +291,6 @@ def main():
     steps = len(bases)
     init = get_initial_basing_point(A,b,bases,idx)
     heap = get_heap(A,bases,idx,pred,init)
-    print(heap)
     init = [[bigq(elt) if elt is not None else '0' for elt in col] for col in init]
     # steps = len(order)
     # vtx = get_unsrt_vtx(bases, bas2vtx)
