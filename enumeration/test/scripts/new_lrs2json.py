@@ -4,6 +4,7 @@ import json, os
 import fractions as fc
 import argparse as argp
 import math, fractions, random as rd
+import networkx as nx
 from prerequisite import farkas as fk
 from prerequisite import core
 
@@ -93,11 +94,42 @@ def poly_scale(A,b):
 #             idx = i
 #     return idx
 
-# Construct the graph of lex feasible bases + order of construction
+# Construct the graph of lex feasible bases
 # -------------------------------------------------------------------
 
+def get_lex_graph(m,n,bases):
+    graph = [set() for _ in bases]
+    bases_dic = {frozenset(elt) : i for i,elt in enumerate(bases)}
+    reg = [0 for _ in bases]
+    for kI,I in enumerate(bases):
+        I_set = set(I)
+        s = 0
+        while reg[kI] < n:
+            Is = I[s]
+            for r in range(m):
+                if r not in I_set:
+                    J = I_set - {Is} | {r}
+                    if frozenset(J) in bases_dic:
+                        kJ = bases_dic[frozenset(J)]
+                        if kJ not in graph[kI]:
+                            graph[kI].add(kJ)
+                            graph[kJ].add(kI)
+                            reg[kI]+=1
+                            reg[kJ]+=1
+                            break
+            s += 1
+    return [sorted(elt) for elt in graph]
+        
+# Visit the graph in order to construct the values required by the algorithm in the correct order
+# -------------------------------------------------------------------
+
+def get_entering_leaving(I,J):
+    I_set, J_set = set(I), set(J)
+    IJ = I_set & J_set
+    s,r = (I_set - IJ).pop(), (J_set - IJ).pop()
+    return (r, I.index(s))
+
 def get_initial_basing_point(A,b,bases,idx):
-    res = [None for _ in bases]
     base = bases[idx]
     A_I = [A[i] for i in base]
     gmp_A_I = to_gmp_matrix(A_I)
@@ -105,66 +137,121 @@ def get_initial_basing_point(A,b,bases,idx):
     gmp_A = to_gmp_matrix(A)
     M = - gmp_A * inv
     b_I = [b[i] for i in base]
-    init = [None for _ in range(len(A)+1)]
-    init[0] = (gmp_A * inv * to_gmp_matrix(b_I)) - to_gmp_matrix(b)
-    for i in range(len(base)):
-        init[base[i]+1] = M[:,i]
-    res[idx] = init
-    return res
+    init = [[None for _ in range(len(A))] for _ in range(len(A)+1)]
+    init[0] = [(((gmp_A * inv * to_gmp_matrix(b_I)) - to_gmp_matrix(b))[i,0]).element for i in range(len(A))]
+    for j in range(len(base)):
+        init[base[j]+1] = [M[i,j].element for i in range(len(A))]
+    return init
 
-def update(b,M,I,r,s):
-    Mrs = M[I[s]+1][r,0]
-    Mp = [None for _ in range(len(M))]
-    Mp[r+1] = -M[I[s]+1]/Mrs
-    Mp[0] = (Mrs * M[0] - M[0][r,0] * M[I[s]+1])/Mrs
-    for i in range(len(I)):
-        if i != s:
-            Mp[I[i]+1] = (Mrs * M[I[i]+1] - M[I[i]+1][r,0] * M[I[s]+1])/Mrs
-    return Mp
-
-def format_updates(updates):
-    res = []
-    for M in updates:
-        Mf = [['0'] if col is None else list_of_gmp_matrix(col)[0] for col in M]
-        res.append(Mf)
-    return res
-
-def get_lex_graph(A,b,bases,idx):
-    updates = get_initial_basing_point(A,b,bases,idx)
-    m, n = len(A), len(A[0])
-    bases_dic = {frozenset(base) : i for (i,base) in enumerate(bases)}
-    graph = [set() for _ in bases]
+def get_pred(bases,graph_lex,idx):
+    G = nx.Graph({i:edges for i,edges in enumerate(graph_lex)})
+    pred = [None for _ in graph_lex]
+    pred[idx] = (idx,0,0)
     order = []
-    pred = [(0,0,0) for _ in bases]
-    visited = {i : False for i in bases_dic.keys()}
-    visited[frozenset(bases[idx])] = True
-    queue = [idx]
-    pointer = 0
-    gmp_b = to_gmp_matrix(b)
-    while True:
-        if pointer >= len(queue):
-            break
-        idx_base = queue[pointer]
-        order.append(idx_base)
-        reg = len(graph[idx_base])
-        if reg < n:
-            base = bases[idx_base]
-            M = updates[idx_base]
-            base_set = set(base)
-            for s in range(len(bases[idx_base])):
-                for r in range(m):
-                    if r not in base_set:
-                        nei_set = frozenset(base_set - {base[s]} | {r})
-                        if nei_set in bases_dic:
-                            idx_nei = bases_dic[nei_set]
-                            graph[idx_base].add(idx_nei)
-                            if not visited[nei_set]:
-                                visited[nei_set] = True
-                                queue.append(idx_nei)
-                                pred[idx_nei] = (idx_base,r,s)
-                                updates[idx_nei] = update(gmp_b,M,base,r,s)
-        pointer += 1
-    return [sorted(elt) for elt in graph], order[1:], pred, format_updates(updates)
+    for u,v in nx.bfs_edges(G,idx):
+        order.append(v)
+        I,J = bases[u], bases[v]
+        r,s = get_entering_leaving(I,J)
+        pred[v] = (u,r,s)
+    return pred, order
+
+
+def get_heap(A,b,bases,idx,order,pred):
+    m = len(A)
+    memory=[[[None for _ in range(m)] for _ in range(m+1)] for _ in bases]
+    memory[idx]=get_initial_basing_point(A,b,bases,idx)
+    heap = []
+    def eval(kJ,p,q):
+        if (val := memory[kJ][q][p]) is not None:
+            return val
+        kI,r,s = pred[kJ]
+        I = bases[kI]
+        Mrs = eval(kI,r,I[s]+1)
+        new_val = None
+        if q == 1+r:
+            Msp = eval(kI,p,I[s]+1)
+            new_val = - Msp/Mrs
+        else:
+            Mpq = eval(kI,p,q)
+            Mrq = eval(kI,r,q)
+            Mps = eval(kI,p,I[s]+1)
+            new_val = (Mrs * Mpq - Mrq * Mps) / Mrs
+        memory[kJ][q][p] = new_val
+        heap.append(new_val)
+        return new_val
+
+    for kJ in order:
+        J = set(bases[kJ])
+        (kI,r,s) = pred[kJ]
+        I = bases[kI]
+        Mrs = eval(kI,r,I[s]+1)
+        sat_vect = [None for _ in A]
+        for p in range(len(A)):
+            val = eval(kJ,p,0)
+            sat_vect[p] = 1 if val > 0 else 0
+        for q in range(len(A)):
+            if q not in J:
+                sat_vect[q] = 1
+            else:
+                for p in range(len(sat_vect)):
+                    if sat_vect[p] == 0:
+                        val = eval(kJ,p,1+q)
+                        sat_vect[p] = 1 if val > 0 else 0
+    return heap
+        
+
+
+
+        
+
+
+
+
+ 
+
+# def format_updates(updates):
+#     res = []
+#     for M in updates:
+#         Mf = [['0'] if col is None else list_of_gmp_matrix(col)[0] for col in M]
+#         res.append(Mf)
+#     return res
+
+# def get_lex_graph(A,b,bases,idx):
+#     updates = get_initial_basing_point(A,b,bases,idx)
+#     m, n = len(A), len(A[0])
+#     bases_dic = {frozenset(base) : i for (i,base) in enumerate(bases)}
+#     graph = [set() for _ in bases]
+#     order = []
+#     pred = [(0,0,0) for _ in bases]
+#     visited = {i : False for i in bases_dic.keys()}
+#     visited[frozenset(bases[idx])] = True
+#     queue = [idx]
+#     pointer = 0
+#     gmp_b = to_gmp_matrix(b)
+#     while True:
+#         if pointer >= len(queue):
+#             break
+#         idx_base = queue[pointer]
+#         order.append(idx_base)
+#         reg = len(graph[idx_base])
+#         if reg < n:
+#             base = bases[idx_base]
+#             M = updates[idx_base]
+#             base_set = set(base)
+#             for s in range(len(bases[idx_base])):
+#                 for r in range(m):
+#                     if r not in base_set:
+#                         nei_set = frozenset(base_set - {base[s]} | {r})
+#                         if nei_set in bases_dic:
+#                             idx_nei = bases_dic[nei_set]
+#                             graph[idx_base].add(idx_nei)
+#                             if not visited[nei_set]:
+#                                 visited[nei_set] = True
+#                                 queue.append(idx_nei)
+#                                 pred[idx_nei] = (idx_base,r,s)
+#                                 updates[idx_nei] = update(gmp_b,M,base,r,s)
+#         pointer += 1
+#     return [sorted(elt) for elt in graph], order[1:], pred, format_updates(updates)
 
 # Construct the graph of vertices + certificates related to the image graph
 # -------------------------------------------------------------------
@@ -253,10 +340,12 @@ def main():
     A,b = get_polyhedron_from_lrs(name)
     A,b = poly_scale(A,b)
     bases, bas2vtx, bas2det = get_bases_from_lrs(name)
-    idx = 2
-    graph_lex, order, pred, updates = get_lex_graph(A,b,bases,idx)
-    steps = len(order)
-    vtx = get_unsrt_vtx(bases, bas2vtx)
+    idx = 0
+    graph_lex = get_lex_graph(len(A), len(A[0]), bases)
+    pred, order = get_pred(bases, graph_lex, idx)
+    heap = get_heap(A,b,bases,idx,order,pred)
+    # steps = len(order)
+    # vtx = get_unsrt_vtx(bases, bas2vtx)
     # morph, morph_inv = get_morph(bases,vtx,bas2vtx)
     # graph_vtx = get_graph_vtx(graph_lex,morph,len(vtx))
     # edge_inv = get_edge_inv(graph_lex,graph_vtx,morph)
@@ -265,20 +354,20 @@ def main():
 
     # Store in a dictionnary
 
-    tgtjson = {}
-    tgtjson['A'] = A
-    tgtjson['b'] = b
-    tgtjson['bases'] = bases
-    tgtjson['vtx'] = vtx
-    tgtjson['pred'] = pred
-    tgtjson['updates'] = updates
-    tgtjson['idx'] = idx
-    tgtjson['order'] = order
-    tgtjson['steps'] = steps
-    tgtdir = core.resource(name)
+    # tgtjson = {}
+    # tgtjson['A'] = A
+    # tgtjson['b'] = b
+    # tgtjson['bases'] = bases
+    # tgtjson['vtx'] = vtx
+    # tgtjson['pred'] = pred
+    # tgtjson['updates'] = updates
+    # tgtjson['idx'] = idx
+    # tgtjson['order'] = order
+    # tgtjson['steps'] = steps
+    # tgtdir = core.resource(name)
 
-    with open(os.path.join(tgtdir, f"{name}.json"), "w") as stream:
-        json.dump(tgtjson,stream, indent=2)
+    # with open(os.path.join(tgtdir, f"{name}.json"), "w") as stream:
+    #     json.dump(tgtjson,stream, indent=2)
 
 # -------------------------------------------------------------------
 if __name__ == '__main__':
