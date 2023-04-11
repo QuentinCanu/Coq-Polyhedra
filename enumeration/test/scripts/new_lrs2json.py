@@ -192,9 +192,10 @@ def get_heap(A,bases,idx,pred,init):
                 sat_vect[q] = 1
             else:
                 for p in range(len(sat_vect)):
-                    if sat_vect[p] == 0:
-                        val = eval(kJ,p,1+q)
-                        sat_vect[p] = 1 if val > 0 else 0
+                    if p not in J:
+                        if sat_vect[p] == 0:
+                            val = eval(kJ,p,1+q)
+                            sat_vect[p] = 1 if val > 0 else 0
     return [bigq(elt) for elt in heap]
 
 # Construct the graph of vertices + certificates related to the image graph
@@ -290,6 +291,7 @@ def main():
     steps = len(bases)
     init = get_initial_basing_point(A,b,bases,idx)
     heap = get_heap(A,bases,idx,pred,init)
+    print(heap)
     init = [[bigq(elt) if elt is not None else '0' for elt in col] for col in init]
     # steps = len(order)
     # vtx = get_unsrt_vtx(bases, bas2vtx)

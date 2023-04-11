@@ -22,8 +22,8 @@ Local Definition basis := array int63.
 
 Module Rank1Certif.
 
-Definition cmp_vect (u : array bigQ) (v : array bigQ):=
-  PArrayUtils.mk_fun (fun i=> (u.[i] ?= v.[i])%bigQ) (length u)%uint63 Eq.
+(* Definition cmp_vect (u : array bigQ) (v : array bigQ):=
+  PArrayUtils.mk_fun (fun i=> (u.[i] ?= v.[i])%bigQ) (length u)%uint63 Eq. *)
 
 (* if ((M.[Ik].[l] - M'.[Ik].[l]) * Mrs ?= M.[Is].[l] * M.[Ik].[r])%bigQ is Eq then true else false) *)
 
