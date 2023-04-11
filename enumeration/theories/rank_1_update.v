@@ -46,28 +46,30 @@ Fixpoint eval
     let '(kI, rs) := certif_pred.[kJ] in let '(r,s) := rs in let I := certif_bases.[kI] in
     let '(Mrs, memory) := eval n certif_bases certif_pred certif_updates kI r (I.[s]+1)%uint63 memory in
     if Mrs is Some mrs then
-      if (j =? r+1)%uint63 then
-        let '(Mis,memory) := eval n certif_bases certif_pred certif_updates kI i (I.[s]+1)%uint63 memory in
-        if Mis is Some mis then
-          let m'ir := certif_updates.[kJ].[j].[i] (*(-mis / mrs)%bigQ *) in
-          if (mrs * m'ir ?= -mis)%bigQ is Eq then
-            (Some m'ir, memory_update memory kJ i j m'ir)
-          else (None,memory)
-        else (None,memory)
+      if (mrs ?= 0)%bigQ is Eq then (None, memory)
       else
-        let '(Mij,memory) := eval n certif_bases certif_pred certif_updates kI i j memory in
-        if Mij is Some mij then
+        if (j =? r+1)%uint63 then
           let '(Mis,memory) := eval n certif_bases certif_pred certif_updates kI i (I.[s]+1)%uint63 memory in
           if Mis is Some mis then
-            let '(Mrj,memory) := eval n certif_bases certif_pred certif_updates kI r j memory in
-            if Mrj is Some mrj then
-              let m'ij := certif_updates.[kJ].[j].[i] (*(mij - mis * mrj / mrs)%bigQ*) in
-              if ((mij - m'ij) * mrs ?= mis * mrj)%bigQ is Eq then
-                (Some m'ij, memory_update memory kJ i j m'ij)
+            let m'ir := certif_updates.[kJ].[j].[i] (*(-mis / mrs)%bigQ *) in
+            if (mrs * m'ir ?= -mis)%bigQ is Eq then
+              (Some m'ir, memory_update memory kJ i j m'ir)
+            else (None,memory)
+          else (None,memory)
+        else
+          let '(Mij,memory) := eval n certif_bases certif_pred certif_updates kI i j memory in
+          if Mij is Some mij then
+            let '(Mis,memory) := eval n certif_bases certif_pred certif_updates kI i (I.[s]+1)%uint63 memory in
+            if Mis is Some mis then
+              let '(Mrj,memory) := eval n certif_bases certif_pred certif_updates kI r j memory in
+              if Mrj is Some mrj then
+                let m'ij := certif_updates.[kJ].[j].[i] (*(mij - mis * mrj / mrs)%bigQ*) in
+                if ((mij - m'ij) * mrs ?= mis * mrj)%bigQ is Eq then
+                  (Some m'ij, memory_update memory kJ i j m'ij)
+                else (None,memory)
               else (None,memory)
             else (None,memory)
           else (None,memory)
-        else (None,memory)
     else (None, memory)
   else (None, memory).
 
