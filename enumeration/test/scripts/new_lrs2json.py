@@ -116,7 +116,7 @@ def update(b,M,I,r,s):
     Mrs = M[I[s]+1][r,0]
     Mp = [None for _ in range(len(M))]
     Mp[r+1] = -M[I[s]+1]/Mrs
-    Mp[0] = (Mrs * M[0] + (b - M[0])[r,0] * M[I[s]+1])/Mrs
+    Mp[0] = (Mrs * M[0] - M[0][r,0] * M[I[s]+1])/Mrs
     for i in range(len(I)):
         if i != s:
             Mp[I[i]+1] = (Mrs * M[I[i]+1] - M[I[i]+1][r,0] * M[I[s]+1])/Mrs

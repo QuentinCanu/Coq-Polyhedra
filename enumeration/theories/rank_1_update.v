@@ -115,7 +115,7 @@ Definition lazy_check_basis (A : matrix) (b : vector)
                     let (Mi0, memory) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i 0%uint63 memory in
                     if Mi0 is Some mi0 then
                       (acc.[i <- (mi0 ?= 0)%bigQ], memory)
-                    else (acc, memory)) (length A) (make (length A) Eq, memory) in
+                    else (acc.[i <- Lt], memory)) (length A) (make (length A) Eq, memory) in
       let '(_, sat_lex, memory) :=
         IFold.ifold
           (fun i '(j, acc, memory) =>
