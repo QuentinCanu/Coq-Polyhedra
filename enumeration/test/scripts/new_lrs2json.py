@@ -156,10 +156,10 @@ def get_pred(bases,graph_lex,idx):
     return pred, order
 
 
-def get_heap(A,b,bases,idx,order,pred):
+def get_heap(A,b,bases,idx,order,pred,init):
     m = len(A)
     memory=[[[None for _ in range(m)] for _ in range(m+1)] for _ in bases]
-    memory[idx]=get_initial_basing_point(A,b,bases,idx)
+    memory[idx]=init
     heap = []
     def eval(kJ,p,q):
         if (val := memory[kJ][q][p]) is not None:
@@ -197,61 +197,7 @@ def get_heap(A,b,bases,idx,order,pred):
                     if sat_vect[p] == 0:
                         val = eval(kJ,p,1+q)
                         sat_vect[p] = 1 if val > 0 else 0
-    return heap
-        
-
-
-
-        
-
-
-
-
- 
-
-# def format_updates(updates):
-#     res = []
-#     for M in updates:
-#         Mf = [['0'] if col is None else list_of_gmp_matrix(col)[0] for col in M]
-#         res.append(Mf)
-#     return res
-
-# def get_lex_graph(A,b,bases,idx):
-#     updates = get_initial_basing_point(A,b,bases,idx)
-#     m, n = len(A), len(A[0])
-#     bases_dic = {frozenset(base) : i for (i,base) in enumerate(bases)}
-#     graph = [set() for _ in bases]
-#     order = []
-#     pred = [(0,0,0) for _ in bases]
-#     visited = {i : False for i in bases_dic.keys()}
-#     visited[frozenset(bases[idx])] = True
-#     queue = [idx]
-#     pointer = 0
-#     gmp_b = to_gmp_matrix(b)
-#     while True:
-#         if pointer >= len(queue):
-#             break
-#         idx_base = queue[pointer]
-#         order.append(idx_base)
-#         reg = len(graph[idx_base])
-#         if reg < n:
-#             base = bases[idx_base]
-#             M = updates[idx_base]
-#             base_set = set(base)
-#             for s in range(len(bases[idx_base])):
-#                 for r in range(m):
-#                     if r not in base_set:
-#                         nei_set = frozenset(base_set - {base[s]} | {r})
-#                         if nei_set in bases_dic:
-#                             idx_nei = bases_dic[nei_set]
-#                             graph[idx_base].add(idx_nei)
-#                             if not visited[nei_set]:
-#                                 visited[nei_set] = True
-#                                 queue.append(idx_nei)
-#                                 pred[idx_nei] = (idx_base,r,s)
-#                                 updates[idx_nei] = update(gmp_b,M,base,r,s)
-#         pointer += 1
-#     return [sorted(elt) for elt in graph], order[1:], pred, format_updates(updates)
+    return [bigq(elt) for elt in heap]
 
 # Construct the graph of vertices + certificates related to the image graph
 # -------------------------------------------------------------------
@@ -343,7 +289,10 @@ def main():
     idx = 0
     graph_lex = get_lex_graph(len(A), len(A[0]), bases)
     pred, order = get_pred(bases, graph_lex, idx)
-    heap = get_heap(A,b,bases,idx,order,pred)
+    steps = len(order)
+    init = get_initial_basing_point(A,b,bases,idx)
+    heap = get_heap(A,b,bases,idx,order,pred,init)
+    init = [[bigq(elt) if elt is not None else '0' for elt in col] for col in init]
     # steps = len(order)
     # vtx = get_unsrt_vtx(bases, bas2vtx)
     # morph, morph_inv = get_morph(bases,vtx,bas2vtx)
@@ -354,20 +303,20 @@ def main():
 
     # Store in a dictionnary
 
-    # tgtjson = {}
-    # tgtjson['A'] = A
-    # tgtjson['b'] = b
-    # tgtjson['bases'] = bases
-    # tgtjson['vtx'] = vtx
-    # tgtjson['pred'] = pred
-    # tgtjson['updates'] = updates
-    # tgtjson['idx'] = idx
-    # tgtjson['order'] = order
-    # tgtjson['steps'] = steps
-    # tgtdir = core.resource(name)
+    tgtjson = {}
+    tgtjson['A'] = A
+    tgtjson['b'] = b
+    tgtjson['bases'] = bases
+    tgtjson['pred'] = pred
+    tgtjson['idx'] = idx
+    tgtjson['heap'] = heap
+    tgtjson['init'] = init
+    tgtjson['order'] = order
+    tgtjson['steps'] = steps
+    tgtdir = core.resource(name)
 
-    # with open(os.path.join(tgtdir, f"{name}.json"), "w") as stream:
-    #     json.dump(tgtjson,stream, indent=2)
+    with open(os.path.join(tgtdir, f"{name}.json"), "w") as stream:
+        json.dump(tgtjson,stream, indent=2)
 
 # -------------------------------------------------------------------
 if __name__ == '__main__':

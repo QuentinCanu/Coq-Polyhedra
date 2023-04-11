@@ -99,11 +99,10 @@ Definition lazy_sat_pert
   in
   (res,memory,current).
 
-Definition lazy_check_basis (A : matrix) (b : vector)
+Definition lazy_check_basis (m : int63)
   (certif_bases : array basis)
   (certif_pred : array (int63 * (int63 * int63)))
   certif_updates
-  (certif_vtx : array vector)
   (idx_base : int63)
   memory current:=
   let I := certif_bases.[idx_base] in
@@ -118,7 +117,7 @@ Definition lazy_check_basis (A : matrix) (b : vector)
                     let '(Mi0, memory, current) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i 0%uint63 memory current in
                     if Mi0 is Some mi0 then
                       (acc.[i <- (mi0 ?= 0)%bigQ], memory, current)
-                    else (acc.[i <- Lt], memory, current)) (length A) (make (length A) Eq, memory, current) in
+                    else (acc.[i <- Lt], memory, current)) m (make m Eq, memory, current) in
       let '(_, sat_lex, memory,current) :=
         IFold.ifold
           (fun i '(j, acc, memory,current) =>
@@ -128,7 +127,7 @@ Definition lazy_check_basis (A : matrix) (b : vector)
                in
                ((j+1)%uint63, acc, memory, current)
              else
-               (j, acc.[i <- Gt], memory, current)) (length A) (0%uint63, sat_vect, memory, current)
+               (j, acc.[i <- Gt], memory, current)) m (0%uint63, sat_vect, memory, current)
       in
       let '(_, res) :=
         IFold.ifold
@@ -148,7 +147,7 @@ Definition lazy_check_basis (A : matrix) (b : vector)
       (None, memory, current).
 
 Definition build_initial_memory
-  (certif_bases : array basis) (init : matrix) (certif_vtx : array vector) m N idx :=
+  (certif_bases : array basis) (init : matrix) m N idx :=
   let mem := PArrayUtils.mk_fun (fun _ => PArrayUtils.mk_fun (fun _ => make m None) (m+1)%uint63 (make m None)) N (make (m+1)%uint63 (make m None)) in
   let mem := IFold.ifold
               (fun i mem => memory_update mem idx i 0 init.[0].[i])
@@ -166,16 +165,15 @@ Definition lazy_check_all_bases
   (certif_bases : array basis)
   (certif_pred : array (int63 * (int63 * int63)))
   init certif_updates
-  (certif_vtx : array vector)
   (idx : int63) (order : array int63) (steps : int63) :=
-  let memory := build_initial_memory certif_bases init certif_vtx (length A) (length certif_bases) idx in
+  let memory := build_initial_memory certif_bases init (length A) (length certif_bases) idx in
   let res := IFold.ifold
               (fun i '(acc, memory, current) =>
                  match acc with
                  | None => (acc, memory, current)
                  | Some false => (acc, memory, current)
                  | _ =>
-                     lazy_check_basis A b certif_bases certif_pred certif_updates certif_vtx order.[i] memory current
+                     lazy_check_basis (length A) certif_bases certif_pred certif_updates order.[i] memory current
                  end) steps (Some true, memory, 0%uint63)
   in
   res.

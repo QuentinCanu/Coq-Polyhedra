@@ -12,13 +12,14 @@ sys.path.append(os.path.realpath(os.path.join(
 import binreader
 
 # --------------------------------------------------------------------
+
 DESCRIPTORS = dict(
     A = "[[Q]]",
     b = "[Q]",
     bases = "[[I]]",
-    vtx = "[[Q]]",
     pred = "[(I,I,I)]",
-    updates = "[[[Q]]]",
+    heap = "[Q]",
+    init = "[[Q]]",
     idx = "I",
     order = "[I]",
     steps = "I",
