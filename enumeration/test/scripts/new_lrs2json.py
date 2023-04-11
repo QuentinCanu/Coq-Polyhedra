@@ -147,16 +147,14 @@ def get_pred(bases,graph_lex,idx):
     G = nx.Graph({i:edges for i,edges in enumerate(graph_lex)})
     pred = [None for _ in graph_lex]
     pred[idx] = (idx,0,0)
-    order = []
     for u,v in nx.bfs_edges(G,idx):
-        order.append(v)
         I,J = bases[u], bases[v]
         r,s = get_entering_leaving(I,J)
         pred[v] = (u,r,s)
-    return pred, order
+    return pred
 
 
-def get_heap(A,b,bases,idx,order,pred,init):
+def get_heap(A,bases,idx,pred,init):
     m = len(A)
     memory=[[[None for _ in range(m)] for _ in range(m+1)] for _ in bases]
     memory[idx]=init
@@ -180,7 +178,7 @@ def get_heap(A,b,bases,idx,order,pred,init):
         heap.append(new_val)
         return new_val
 
-    for kJ in order:
+    for kJ in range(len(bases)):
         J = set(bases[kJ])
         (kI,r,s) = pred[kJ]
         I = bases[kI]
@@ -288,10 +286,10 @@ def main():
     bases, bas2vtx, bas2det = get_bases_from_lrs(name)
     idx = 0
     graph_lex = get_lex_graph(len(A), len(A[0]), bases)
-    pred, order = get_pred(bases, graph_lex, idx)
-    steps = len(order)
+    pred = get_pred(bases, graph_lex, idx)
+    steps = len(bases)
     init = get_initial_basing_point(A,b,bases,idx)
-    heap = get_heap(A,b,bases,idx,order,pred,init)
+    heap = get_heap(A,bases,idx,pred,init)
     init = [[bigq(elt) if elt is not None else '0' for elt in col] for col in init]
     # steps = len(order)
     # vtx = get_unsrt_vtx(bases, bas2vtx)
@@ -311,7 +309,6 @@ def main():
     tgtjson['idx'] = idx
     tgtjson['heap'] = heap
     tgtjson['init'] = init
-    tgtjson['order'] = order
     tgtjson['steps'] = steps
     tgtdir = core.resource(name)
 

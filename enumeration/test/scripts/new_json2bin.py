@@ -21,7 +21,6 @@ DESCRIPTORS = dict(
     heap = "[Q]",
     init = "[[Q]]",
     idx = "I",
-    order = "[I]",
     steps = "I",
 )
 

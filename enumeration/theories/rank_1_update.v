@@ -165,7 +165,7 @@ Definition lazy_check_all_bases
   (certif_bases : array basis)
   (certif_pred : array (int63 * (int63 * int63)))
   init certif_updates
-  (idx : int63) (order : array int63) (steps : int63) :=
+  (idx : int63) (steps : int63) :=
   let memory := build_initial_memory certif_bases init (length A) (length certif_bases) idx in
   let res := IFold.ifold
               (fun i '(acc, memory, current) =>
@@ -173,7 +173,7 @@ Definition lazy_check_all_bases
                  | None => (acc, memory, current)
                  | Some false => (acc, memory, current)
                  | _ =>
-                     lazy_check_basis (length A) certif_bases certif_pred certif_updates order.[i] memory current
+                     lazy_check_basis (length A) certif_bases certif_pred certif_updates i memory current
                  end) steps (Some true, memory, 0%uint63)
   in
   res.
