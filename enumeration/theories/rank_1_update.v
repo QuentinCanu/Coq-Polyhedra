@@ -1,8 +1,10 @@
+Require Import String.
 Require Import PArray Uint63.
 From Bignums Require Import BigQ.
 From mathcomp Require Import all_ssreflect all_algebra.
 From Polyhedra Require Import extra_misc inner_product vector_order.
 Require Import graph extra_array extra_int array_set rat_bigQ diameter img_graph refinement enum_algo.
+From ReductionEffect Require Import PrintingEffect.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -21,6 +23,8 @@ Local Definition basis := array int63.
 (* ---------------------------------------------------------------------------- *)
 
 Module Rank1Certif.
+
+Definition print_debug {A : Type} (s : string) (a : A):= let x := print s in print_id a.
 
 (* Definition cmp_vect (u : array bigQ) (v : array bigQ):=
   PArrayUtils.mk_fun (fun i=> (u.[i] ?= v.[i])%bigQ) (length u)%uint63 Eq. *)
@@ -52,7 +56,7 @@ Fixpoint eval
         if (j =? r+1)%uint63 then
           let '(Mis,memory,current) := eval n certif_bases certif_pred certif_updates kI i (I.[s]+1)%uint63 memory current in
           if Mis is Some mis then
-            let m'ir :=  certif_updates.[current] (*(-mis / mrs)%bigQ *) in
+            let m'ir := certif_updates.[current] (*(-mis / mrs)%bigQ *) in
             if (mrs * m'ir ?= -mis)%bigQ is Eq then
               (Some m'ir, memory_update memory kJ i j m'ir, Uint63.succ current)
             else (None, memory, current)
@@ -65,12 +69,12 @@ Fixpoint eval
               let '(Mrj,memory,current) := eval n certif_bases certif_pred certif_updates kI r j memory current in
               if Mrj is Some mrj then
                 let m'ij := certif_updates.[current] (*(mij - mis * mrj / mrs)%bigQ*) in
-                if ((mij - m'ij) * mrs ?= mis * mrj)%bigQ is Eq then
+                if (((mij - m'ij) * mrs ?= mis * mrj)%bigQ) is Eq then
                   (Some m'ij, memory_update memory kJ i j m'ij, Uint63.succ current)
-                else (None, memory,current)
-              else (None, memory,current)
-            else (None, memory,current)
-          else (None, memory,current)
+                else (None, memory, current)
+              else (None, memory, current)
+            else (None, memory, current)
+          else (None, memory, current)
     else (None, memory, current)
   else (None, memory, current).
 
@@ -82,20 +86,20 @@ Definition lazy_sat_pert
   memory current
   (k : int63) (sat_vect : array comparison):=
   let I := certif_bases.[idx_base] in
-  let '(_, res, memory) := IFold.ifold
-    (fun i '(j, acc, memory)=>
+  let '(_,res,memory,curent) := IFold.ifold
+    (fun i '(j, acc, memory, current)=>
        if (I.[j] =? i)%uint63 then
-         ((j+1)%uint63, acc, memory) (* no-op when i is a line in the basis *)
+         ((j+1)%uint63, acc, memory, current) (* no-op when i is a line in the basis *)
        else
          if acc.[i] is Eq then
            let '(value, memory, current) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i (I.[k]+1)%uint63 memory current in
            if value is Some v then
-             (j, acc.[i <- (v ?= 0)%bigQ], memory)
+             (j, acc.[i <- (v ?= 0)%bigQ], memory,current)
            else
-             (j, acc.[i <- Lt], memory) (* HACK here, to be fixed *)
+             (j, acc.[i <- Lt], memory,current) (* HACK here, to be fixed *)
          else
-           (j, acc, memory) (* no-op since we only need to break inequality ties *)
-    ) (length sat_vect) (0%uint63, sat_vect, memory)
+           (j, acc, memory,current) (* no-op since we only need to break inequality ties *)
+    ) (length sat_vect) (0%uint63, sat_vect, memory, current)
   in
   (res,memory,current).
 
