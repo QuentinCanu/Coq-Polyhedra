@@ -80,13 +80,11 @@ Fixpoint eval
 
 Definition lazy_sat_pert
   (certif_bases : array basis)
-  certif_pred
-  certif_updates
-  (idx_base : int63)
-  memory current
-  (k : int63) (sat_vect : array comparison):=
+  certif_pred certif_updates (idx_base : int63)
+  (k : int63) (sat_vect : array comparison)
+  memory current:=
   let I := certif_bases.[idx_base] in
-  let '(_,res,memory,curent) := IFold.ifold
+  let '(j,res,memory,current) := IFold.ifold
     (fun i '(j, acc, memory, current)=>
        if (I.[j] =? i)%uint63 then
          ((j+1)%uint63, acc, memory, current) (* no-op when i is a line in the basis *)
@@ -94,9 +92,9 @@ Definition lazy_sat_pert
          if acc.[i] is Eq then
            let '(value, memory, current) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i (I.[k]+1)%uint63 memory current in
            if value is Some v then
-             (j, acc.[i <- (v ?= 0)%bigQ], memory,current)
+             (j, acc.[i <- (v ?= 0)%bigQ],memory,current)
            else
-             (j, acc.[i <- Lt], memory,current) (* HACK here, to be fixed *)
+             (j, acc.[i <- Lt],memory,current) (* HACK here, to be fixed *)
          else
            (j, acc, memory,current) (* no-op since we only need to break inequality ties *)
     ) (length sat_vect) (0%uint63, sat_vect, memory, current)
@@ -127,7 +125,7 @@ Definition lazy_check_basis (m : int63)
           (fun i '(j, acc, memory,current) =>
              if (I.[j] =? i)%uint63 then
                let '(acc,memory,current) :=
-                 lazy_sat_pert certif_bases certif_pred certif_updates idx_base memory current j acc
+                 lazy_sat_pert certif_bases certif_pred certif_updates idx_base j acc memory current
                in
                ((j+1)%uint63, acc, memory, current)
              else
