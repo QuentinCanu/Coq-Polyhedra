@@ -184,14 +184,14 @@ def get_heap(A,bases,idx,pred,init):
         I = bases[kI]
         Mrs = eval(kI,r,I[s]+1)
         sat_vect = [None for _ in A]
-        for p in range(len(A)):
+        for p in range(m):
             val = eval(kJ,p,0)
             sat_vect[p] = 1 if val > 0 else 0
-        for q in range(len(A)):
+        for q in range(m):
             if q not in J:
                 sat_vect[q] = 1
             else:
-                for p in range(len(sat_vect)):
+                for p in range(m):
                     if p not in J:
                         if sat_vect[p] == 0:
                             val = eval(kJ,p,1+q)
