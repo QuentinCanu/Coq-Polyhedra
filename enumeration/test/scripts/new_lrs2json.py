@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import json, os
+import json, os, time
 import fractions as fc
 import argparse as argp
 import math, fractions, random as rd
@@ -287,11 +287,20 @@ def main():
     A,b = poly_scale(A,b)
     bases, bas2vtx, bas2det = get_bases_from_lrs(name)
     idx = 0
+    print("Build the lex graph...",end='',flush=True)
+    st = time.time()
     graph_lex = get_lex_graph(len(A), len(A[0]), bases)
+    et = time.time()
+    print(f" in {(et-st):.2f}s")
     pred = get_pred(bases, graph_lex, idx)
     steps = len(bases)
     init = get_initial_basing_point(A,b,bases,idx)
+    print("Build the heap...",end='',flush=True)
+    st = time.time()
     heap = get_heap(A,bases,idx,pred,init)
+    et = time.time()
+    print(f" in {(et-st):.2f}s")
+    print("Heap size:",len(heap))
     init = [[bigq(elt) if elt is not None else '0' for elt in col] for col in init]
     # steps = len(order)
     # vtx = get_unsrt_vtx(bases, bas2vtx)
