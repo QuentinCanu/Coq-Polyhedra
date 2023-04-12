@@ -4,7 +4,7 @@ From Bignums Require Import BigQ.
 From mathcomp Require Import all_ssreflect all_algebra.
 From Polyhedra Require Import extra_misc inner_product vector_order.
 Require Import graph extra_array extra_int array_set rat_bigQ diameter img_graph refinement enum_algo.
-From ReductionEffect Require Import PrintingEffect.
+(* From ReductionEffect Require Import PrintingEffect. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -24,7 +24,7 @@ Local Definition basis := array int63.
 
 Module Rank1Certif.
 
-Definition print_debug {A : Type} (s : string) (a : A):= let x := print s in print_id a.
+(* Definition print_debug {A : Type} (s : string) (a : A):= let x := print s in print_id a. *)
 
 (* Definition cmp_vect (u : array bigQ) (v : array bigQ):=
   PArrayUtils.mk_fun (fun i=> (u.[i] ?= v.[i])%bigQ) (length u)%uint63 Eq. *)
@@ -84,7 +84,7 @@ Definition lazy_sat_pert
   (k : int63) (sat_vect : array comparison)
   memory current:=
   let I := certif_bases.[idx_base] in
-  let '(j,res,memory,current) := IFold.ifold
+  let '(_,res,memory,current) := IFold.ifold
     (fun i '(j, acc, memory, current)=>
        if (I.[j] =? i)%uint63 then
          ((j+1)%uint63, acc, memory, current) (* no-op when i is a line in the basis *)
@@ -114,12 +114,17 @@ Definition lazy_check_basis (m : int63)
   if Mrs is Some Mrs then
     if (Mrs ?= 0)%bigQ is Eq then (Some false, memory, current)
     else
-      let '(sat_vect, memory, current) := IFold.ifold
-                 (fun i '(acc, memory, current) =>
-                    let '(Mi0, memory, current) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i 0%uint63 memory current in
-                    if Mi0 is Some mi0 then
-                      (acc.[i <- (mi0 ?= 0)%bigQ], memory, current)
-                    else (acc.[i <- Lt], memory, current)) m (make m Eq, memory, current) in
+      let '(_, sat_vect, memory, current) :=
+        IFold.ifold
+          (fun i '(j, acc, memory, current) =>
+             if (I.[j] =? i)%uint63 then
+               ((j+1)%uint63, acc, memory, current)
+             else
+               let '(Mi0, memory, current) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i 0%uint63 memory current in
+               if Mi0 is Some mi0 then
+                 (j, acc.[i <- (mi0 ?= 0)%bigQ], memory, current)
+               else (j, acc.[i <- Lt], memory, current)) m (0%uint63, make m Eq, memory, current)
+      in
       let '(_, sat_lex, memory,current) :=
         IFold.ifold
           (fun i '(j, acc, memory,current) =>
@@ -135,9 +140,7 @@ Definition lazy_check_basis (m : int63)
         IFold.ifold
           (fun i '(j, res) =>
              if res then
-               if (i =? I.[j])%uint63 then
-                 if sat_lex.[i] is Eq then ((j+1)%uint63, res)
-                 else (j, false)
+               if (i =? I.[j])%uint63 then ((j+1)%uint63, res)
                else
                  if sat_lex.[i] is Gt then (j, res)
                  else (j, false)

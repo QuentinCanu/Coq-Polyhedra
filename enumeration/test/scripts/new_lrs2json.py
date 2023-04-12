@@ -119,7 +119,7 @@ def get_lex_graph(m,n,bases):
                             break
             s += 1
     return [sorted(elt) for elt in graph]
-        
+
 # Visit the graph in order to construct the values required by the algorithm in the correct order
 # -------------------------------------------------------------------
 
@@ -185,8 +185,9 @@ def get_heap(A,bases,idx,pred,init):
         Mrs = eval(kI,r,I[s]+1)
         sat_vect = [None for _ in A]
         for p in range(m):
-            val = eval(kJ,p,0)
-            sat_vect[p] = 1 if val > 0 else 0
+            if p not in J:
+                val = eval(kJ,p,0)
+                sat_vect[p] = 1 if val > 0 else 0
         for q in range(m):
             if q not in J:
                 sat_vect[q] = 1
