@@ -179,24 +179,25 @@ def get_heap(A,bases,idx,pred,init):
         return new_val
 
     for kJ in range(len(bases)):
-        J = set(bases[kJ])
-        (kI,r,s) = pred[kJ]
-        I = bases[kI]
-        Mrs = eval(kI,r,I[s]+1)
-        sat_vect = [None for _ in A]
-        for p in range(m):
-            if p not in J:
-                val = eval(kJ,p,0)
-                sat_vect[p] = 1 if val > 0 else 0
-        for q in range(m):
-            if q not in J:
-                sat_vect[q] = 1
-            else:
-                for p in range(m):
-                    if p not in J:
-                        if sat_vect[p] == 0:
-                            val = eval(kJ,p,1+q)
-                            sat_vect[p] = 1 if val > 0 else 0
+        if kJ != idx:
+            J = set(bases[kJ])
+            (kI,r,s) = pred[kJ]
+            I = bases[kI]
+            Mrs = eval(kI,r,I[s]+1)
+            sat_vect = [None for _ in A]
+            for p in range(m):
+                if p not in J:
+                    val = eval(kJ,p,0)
+                    sat_vect[p] = 1 if val > 0 else 0
+            for q in range(m):
+                if q not in J:
+                    sat_vect[q] = 1
+                else:
+                    for p in range(m):
+                        if p not in J:
+                            if sat_vect[p] == 0:
+                                val = eval(kJ,p,1+q)
+                                sat_vect[p] = 1 if val > 0 else 0
     return [bigq(elt) for elt in heap]
 
 # Construct the graph of vertices + certificates related to the image graph
