@@ -3,7 +3,7 @@ From Bignums Require Import BigNumPrelude.
 From Bignums Require Import BigQ.
 
 (* -------------------------------------------------------------------- *)
-Local Open Scope array_scope.
+(* Local Open Scope array_scope.
 
 Delimit Scope bigN_scope with bigN.
 Delimit Scope bigZ_scope with bigZ.
@@ -163,7 +163,7 @@ Definition test := Eval vm_compute in
     certif_updates
     certif_vtx 0%uint63 order steps.
 
-End Cube3.
+End Cube3. *)
 
 (* From Coq Require Import ExtrOCamlInt63 ExtrOCamlPArray ExtrOcamlBasic Extraction.
 

@@ -181,7 +181,7 @@ def get_heap(A,bases,idx,pred,init):
 
     for kJ in range(len(bases)):
         if kJ != idx:
-            J = set(bases[kJ])
+            J = frozenset(bases[kJ])
             (kI,r,s) = pred[kJ]
             I = bases[kI]
             Mrs = eval(kI,r,I[s]+1)
@@ -203,13 +203,6 @@ def get_heap(A,bases,idx,pred,init):
 
 # Construct the graph of vertices + certificates related to the image graph
 # -------------------------------------------------------------------
-def get_unsrt_vtx(bases,bas2vtx):
-    vtx_list = [None for _ in bases]
-    for i in range(len(bases)):
-        bas = bases[i]
-        vtx = bas2vtx[frozenset(bas)]
-        vtx_list[i] = vtx
-    return vtx_list
 
 def get_vtx(bas2vtx):
     vtx_list = [i for i in bas2vtx.values()]
@@ -226,6 +219,21 @@ def get_morph(bases, vtx, bas2vtx):
         morph[i] = j
         morph_inv[j] = i
     return morph, morph_inv
+
+def get_vtx_eq(bases, morph, lenvtx):
+    res = [set() for _ in range(lenvtx)]
+    for i,base in enumerate(bases):
+        tgt = morph[i]
+        res[tgt].update(base)
+    return [sorted(elt) for elt in res]
+
+def get_dim(m,vtx_eq,morph_inv):
+    res = []
+    for p in range(m):
+        j = next(i for i,elt in enumerate(vtx_eq) if p not in set(elt))
+        res.append(morph_inv[j])
+    return res
+
 
 def get_graph_vtx(graph_lex, morf, length_vtx):
     graph = [[] for i in range(length_vtx)]
@@ -257,34 +265,18 @@ def get_farkas_cert(A, m, n):
         cert_neg.append(list(map(bigq,fk.farkas_gen(-A, n, m, k))))
     return cert_pos, cert_neg
 
-def get_dim_full(vtx, n):
-    while True:
-        map_lbl = rd.sample(range(len(vtx)), n+1)
-        map_lbl.sort()
-        M = sym.Matrix([list(map(fc.Fraction, vtx[i])) for i in list(map_lbl)[1:]])
-        N = sym.Matrix([list(map(fc.Fraction, vtx[map_lbl[0]])) for _ in range(n)])
-        Q = M - N
-        Q_gmp = to_gmp_matrix(Q)
-        Q_det = Q_gmp.det()
-        if Q_det != 0:
-            Q_inv = Q.gmp_inv()
-            Q_res = list_of_gmp_matrix(Q_inv)
-            return list(map_lbl)[0], list(map_lbl)[:1], Q_res
-
 
 # Main function, write a json file with one certificate per entry
 # -------------------------------------------------------------------
 def optparser():
     parser = argp.ArgumentParser(description='Extract json data from polyhedron data')
     parser.add_argument('name', help="the name of the polyhedron to be extracted")
-    parser.add_argument('--root_range', nargs = 2, default = [0,1], type = int)
     return parser
 
 # -------------------------------------------------------------------
 def main():
     args   = optparser().parse_args()
     name   = args.name
-    root_k,root_d = args.root_range
 
     # Compute everything
     A,b = get_polyhedron_from_lrs(name)
@@ -295,31 +287,23 @@ def main():
     graph_lex = get_lex_graph(len(A), len(A[0]), bases)
     et = time.time()
     print(f" in {(et-st):.2f}s")
-
-    min = math.inf
     root = 0
-    chunk_size = len(bases)//root_d
-    begin = root_k * chunk_size
-    end = begin + chunk_size
-
-    for idx in range(begin,end):
-        pred = get_pred(bases, graph_lex, idx)
-        init = get_initial_basing_point(A,b,bases,idx)
-        st = time.time()
-        heap = get_heap(A,bases,idx,pred,init)
-        et = time.time()
-        h = len(heap)
-        print(f"heap for root={idx}: time={(et-st):.2f}s & size={h}")
-        if h < min:
-            min = h
-            root = idx
-    steps = len(bases)
+    pred = get_pred(bases, graph_lex, root)
+    init = get_initial_basing_point(A,b,bases,root)
+    st = time.time()
+    heap = get_heap(A,bases,root,pred,init)
+    et = time.time()
+    h = len(heap)
+    print(f"heap for root={root}: time={(et-st):.2f}s & size={h}")
     init = [[bigq(elt) if elt is not None else '0' for elt in col] for col in init]
-    # vtx = get_unsrt_vtx(bases, bas2vtx)
-    # morph, morph_inv = get_morph(bases,vtx,bas2vtx)
-    # graph_vtx = get_graph_vtx(graph_lex,morph,len(vtx))
-    # edge_inv = get_edge_inv(graph_lex,graph_vtx,morph)
-    # farkas_cert_pos, farkas_cert_neg = get_farkas_cert(A,m,n)
+
+    vtx = get_vtx(bas2vtx)
+    morph, morph_inv = get_morph(bases,vtx,bas2vtx)
+    vtx_eq = get_vtx_eq(bases,morph,len(vtx))
+    dim = get_dim(len(A),vtx_eq,morph_inv)
+    graph_vtx = get_graph_vtx(graph_lex,morph,len(vtx))
+    edge_inv = get_edge_inv(graph_lex,graph_vtx,morph)
+    bound_pos, bound_neg = get_farkas_cert(A,len(A),len(A[0]))
 
 
     # Store in a dictionnary
@@ -329,10 +313,19 @@ def main():
     tgtjson['b'] = b
     tgtjson['bases'] = bases
     tgtjson['pred'] = pred
-    tgtjson['idx'] = idx
+    tgtjson['root'] = root
     tgtjson['heap'] = heap
     tgtjson['init'] = init
-    tgtjson['steps'] = steps
+    tgtjson['graph_lex'] = graph_lex
+    tgtjson['graph_vtx'] = graph_vtx
+    tgtjson['morph'] = morph
+    tgtjson['morph_inv'] = morph_inv
+    tgtjson['edge_inv'] = edge_inv
+    tgtjson['bound_pos'] = bound_pos
+    tgtjson['bound_neg'] = bound_neg
+    tgtjson['dim'] = dim
+    tgtjson['vtx_eq'] = vtx_eq
+
     tgtdir = core.resource(name)
 
     with open(os.path.join(tgtdir, f"{name}.json"), "w") as stream:

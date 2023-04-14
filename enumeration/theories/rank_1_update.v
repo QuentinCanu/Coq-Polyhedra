@@ -4,7 +4,7 @@ From Bignums Require Import BigQ.
 From mathcomp Require Import all_ssreflect all_algebra.
 From Polyhedra Require Import extra_misc inner_product vector_order.
 Require Import graph extra_array extra_int array_set rat_bigQ diameter img_graph refinement enum_algo.
-(* From ReductionEffect Require Import PrintingEffect. *)
+From ReductionEffect Require Import PrintingEffect.
 
 Set Implicit Arguments.
 Unset Strict Implicit.
@@ -80,17 +80,17 @@ Fixpoint eval
 
 Definition lazy_sat_pert
   (certif_bases : array basis)
-  certif_pred certif_updates (idx_base : int63)
+  certif_pred certif_updates (root_base : int63)
   (k : int63) (sat_vect : array comparison)
   memory current:=
-  let I := certif_bases.[idx_base] in
+  let I := certif_bases.[root_base] in
   let '(_,res,memory,current) := IFold.ifold
     (fun i '(j, acc, memory, current)=>
        if (I.[j] =? i)%uint63 then
          ((j+1)%uint63, acc, memory, current) (* no-op when i is a line in the basis *)
        else
          if acc.[i] is Eq then
-           let '(value, memory, current) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i (I.[k]+1)%uint63 memory current in
+           let '(value, memory, current) := eval Uint63.size certif_bases certif_pred certif_updates root_base i (I.[k]+1)%uint63 memory current in
            if value is Some v then
              (j, acc.[i <- (v ?= 0)%bigQ],memory,current)
            else
@@ -105,10 +105,10 @@ Definition lazy_check_basis (m : int63)
   (certif_bases : array basis)
   (certif_pred : array (int63 * (int63 * int63)))
   certif_updates
-  (idx_base : int63)
+  (root_base : int63)
   memory current:=
-  let I := certif_bases.[idx_base] in
-  let '(I0, (r, s)) := certif_pred.[idx_base] in
+  let I := certif_bases.[root_base] in
+  let '(I0, (r, s)) := certif_pred.[root_base] in
   let '(Mrs, memory, current) :=
     eval Uint63.size certif_bases certif_pred certif_updates I0 r ((certif_bases.[I0]).[s]+1)%uint63 memory current in
   if Mrs is Some Mrs then
@@ -120,7 +120,7 @@ Definition lazy_check_basis (m : int63)
              if (I.[j] =? i)%uint63 then
                ((j+1)%uint63, acc, memory, current)
              else
-               let '(Mi0, memory, current) := eval Uint63.size certif_bases certif_pred certif_updates idx_base i 0%uint63 memory current in
+               let '(Mi0, memory, current) := eval Uint63.size certif_bases certif_pred certif_updates root_base i 0%uint63 memory current in
                if Mi0 is Some mi0 then
                  (j, acc.[i <- (mi0 ?= 0)%bigQ], memory, current)
                else (j, acc.[i <- Lt], memory, current)) m (0%uint63, make m Eq, memory, current)
@@ -130,7 +130,7 @@ Definition lazy_check_basis (m : int63)
           (fun i '(j, acc, memory,current) =>
              if (I.[j] =? i)%uint63 then
                let '(acc,memory,current) :=
-                 lazy_sat_pert certif_bases certif_pred certif_updates idx_base j acc memory current
+                 lazy_sat_pert certif_bases certif_pred certif_updates root_base j acc memory current
                in
                ((j+1)%uint63, acc, memory, current)
              else
@@ -152,16 +152,16 @@ Definition lazy_check_basis (m : int63)
       (None, memory, current).
 
 Definition build_initial_memory
-  (certif_bases : array basis) (init : matrix) m N idx :=
+  (certif_bases : array basis) (init : matrix) m N root :=
   let mem := PArrayUtils.mk_fun (fun _ => PArrayUtils.mk_fun (fun _ => make m None) (m+1)%uint63 (make m None)) N (make (m+1)%uint63 (make m None)) in
   let mem := IFold.ifold
-              (fun i mem => memory_update mem idx i 0 init.[0].[i])
+              (fun i mem => memory_update mem root i 0 init.[0].[i])
               m mem in
-  let I := certif_bases.[idx] in
+  let I := certif_bases.[root] in
   IFold.ifold (fun i mem =>
                  IFold.ifold
                    (fun j mem =>
-                      memory_update mem idx i (I.[j]+1)%uint63 init.[I.[j]+1].[i])
+                      memory_update mem root i (I.[j]+1)%uint63 init.[I.[j]+1].[i])
                    (length I) mem)
     m mem.
 
@@ -169,18 +169,52 @@ Definition lazy_check_all_bases
   (A : matrix) (b : vector)
   (certif_bases : array basis)
   (certif_pred : array (int63 * (int63 * int63)))
-  init certif_updates
-  (idx : int63) (steps : int63) :=
-  let memory := build_initial_memory certif_bases init (length A) (length certif_bases) idx in
+  (root : int63) init certif_updates :=
+  let memory := build_initial_memory certif_bases init (length A) (length certif_bases) root in
   IFold.ifold
     (fun i '(acc, memory, current) =>
-       if (i =? idx)%uint63 then (acc, memory, current)
+       if (i =? root)%uint63 then (acc, memory, current)
        else
          match acc with
          | None => (acc, memory, current)
          | Some false => (acc, memory, current)
          | _ => lazy_check_basis (length A) certif_bases certif_pred certif_updates i memory current
-         end) steps (Some true, memory, 0%uint63).
+         end) (length certif_bases) (Some true, memory, 0%uint63).
+
+Definition full_dimensional (certif_dim : array int63) (memory : array (array (array (option bigQ)))):=
+  IFold.iall (fun i=>
+    let kI := certif_dim.[i] in
+    if memory.[kI].[0].[i] is Some val then
+      if (val ?= 0)%bigQ is Gt then true else false
+    else false
+  ) (length certif_dim).
+
+Definition label_img 
+  (morph : array int63) (certif_bases : array basis) (certif_img : array (array int63))
+  (memory : array (array (array (option bigQ)))):=
+  IFold.iall (fun i=>
+    let j := morph.[i] in
+    let indices := certif_img.[j] in
+    let base := certif_bases.[i] in
+    (IFold.ifold (fun k_idx '(k_bas,acc)=>
+      if ~~ acc then (k_bas,acc) else
+      let index := indices.[k_idx] in
+      if (k_bas <? length base)%uint63 && (base.[k_bas] =? index)%uint63 then 
+        (Uint63.succ k_bas, acc)
+          (*vertex index = line index => don't have to be verified*)
+      else 
+        let Val := memory.[i].[0].[index] in
+        if Val is Some val then
+          if (val ?= 0)%bigQ is Eq then (k_bas, acc) else (k_bas, false)
+          (*vertex index not in basis, the check has been done in memory*)
+        else (k_bas, false)
+    ) (length indices) (0%uint63,true)).2
+  ) (length morph).
+
+Definition lazy_rank_1_update A b certif_bases certif_pred root init certif_updates certif_dim morph certif_img:=
+  let '(val, memory, _):= lazy_check_all_bases A b certif_bases certif_pred root init certif_updates in
+  (val, full_dimensional certif_dim memory, label_img morph certif_bases certif_img memory).
+
 
 End Rank1Certif.
 
@@ -189,8 +223,6 @@ Module R1 := Rank1Certif.
 (* ---------------------------------------------------------------------------- *)
 
 Module CertifPredVerif.
-
-
 
 Definition adjacent (I J : array int63) (r s : int63):=
   (IFold.ifold (fun i '(kI,kJ,c)=>
@@ -222,9 +254,37 @@ Definition adjacent (I J : array int63) (r s : int63):=
 Definition certif_pred_correct certif_bases certif_pred :=
   IFold.iall (fun i =>
     let J := certif_bases.[i] in
-    let '(idx, rs) := certif_pred.[i] in
+    let '(root, rs) := certif_pred.[i] in
     let '(r,s) := rs in
-    let I := certif_bases.[idx] in
+    let I := certif_bases.[root] in
     adjacent I J r s) (length certif_bases).
 
 End CertifPredVerif.
+
+Module CPV := CertifPredVerif.
+
+(* ---------------------------------------------------------------------------- *)
+
+Module OtherCertifications.
+
+Definition bounded A b certif_bound_pos certif_bound_neg:=
+  PBC.bounded_Po_test (A,b) certif_bound_pos certif_bound_neg.
+
+Definition regularity (A : array (array bigQ)) graph_lex :=
+  let n := length A.[0] in
+  Com.compute_test graph_lex (fun i => (GraphUtils.nb_neighbours graph_lex i =? n)%uint63).
+
+Definition adjacency (A : array (array bigQ)) graph_lex bases :=
+  let n' := Uint63.pred (length A.[0]) in
+  Com.compute_test graph_lex (fun i=> 
+    GraphUtils.neighbour_all (fun j =>
+      let c := (AIC.array_inter (fun i j => (i <? j)%uint63) bases.[i] bases.[j]) in
+      (c =? n')%uint63
+    ) graph_lex i).
+
+Definition img_graph morph morph_inv edge_inv graph_lex graph_vtx :=
+  IGC.img_graph morph morph_inv edge_inv graph_lex graph_vtx.
+
+End OtherCertifications.
+
+Module OC := OtherCertifications.

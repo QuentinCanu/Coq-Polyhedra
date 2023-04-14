@@ -18,10 +18,18 @@ DESCRIPTORS = dict(
     b = "[Q]",
     bases = "[[I]]",
     pred = "[(I,I,I)]",
+    root = "I",
     heap = "[Q]",
     init = "[[Q]]",
-    idx = "I",
-    steps = "I",
+    graph_lex = "[[I]]",
+    graph_vtx = "[[I]]",
+    morph = "[I]",
+    morph_inv = "[I]",
+    edge_inv = "[[(I,I)]]",
+    bound_pos = "[[Q]]",
+    bound_neg = "[[Q]]",
+    dim = "[I]",
+    vtx_eq = "[[I]]"
 )
 
 DESCRIPTORS = {
