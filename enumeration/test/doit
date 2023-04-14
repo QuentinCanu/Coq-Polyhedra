@@ -1,0 +1,1 @@
+parallel scripts/new_lrs2json.py poly20dim21 --root_range {} 28 ::: {0..27}
