@@ -160,7 +160,8 @@ def get_heap(A,bases,idx,pred,init):
     memory[idx]=init
     heap = []
     def eval(kJ,p,q):
-        if (val := memory[kJ][q][p]) is not None:
+        val = memory[kJ][q][p]
+        if val is not None:
             return val
         kI,r,s = pred[kJ]
         I = bases[kI]
@@ -276,34 +277,44 @@ def get_dim_full(vtx, n):
 def optparser():
     parser = argp.ArgumentParser(description='Extract json data from polyhedron data')
     parser.add_argument('name', help="the name of the polyhedron to be extracted")
+    parser.add_argument('--root_range', nargs = 2, default = [0,1], type = int)
     return parser
 
 # -------------------------------------------------------------------
 def main():
     args   = optparser().parse_args()
     name   = args.name
+    root_k,root_d = args.root_range
 
     # Compute everything
     A,b = get_polyhedron_from_lrs(name)
     A,b = poly_scale(A,b)
     bases, bas2vtx, bas2det = get_bases_from_lrs(name)
-    idx = 0
     print("Build the lex graph...",end='',flush=True)
     st = time.time()
     graph_lex = get_lex_graph(len(A), len(A[0]), bases)
     et = time.time()
     print(f" in {(et-st):.2f}s")
-    pred = get_pred(bases, graph_lex, idx)
+
+    min = math.inf
+    root = 0
+    chunk_size = len(bases)//root_d
+    begin = root_k * chunk_size
+    end = begin + chunk_size
+
+    for idx in range(begin,end):
+        pred = get_pred(bases, graph_lex, idx)
+        init = get_initial_basing_point(A,b,bases,idx)
+        st = time.time()
+        heap = get_heap(A,bases,idx,pred,init)
+        et = time.time()
+        h = len(heap)
+        print(f"heap for root={idx}: time={(et-st):.2f}s & size={h}")
+        if h < min:
+            min = h
+            root = idx
     steps = len(bases)
-    init = get_initial_basing_point(A,b,bases,idx)
-    print("Build the heap...",end='',flush=True)
-    st = time.time()
-    heap = get_heap(A,bases,idx,pred,init)
-    et = time.time()
-    print(f" in {(et-st):.2f}s")
-    print("Heap size:",len(heap))
     init = [[bigq(elt) if elt is not None else '0' for elt in col] for col in init]
-    # steps = len(order)
     # vtx = get_unsrt_vtx(bases, bas2vtx)
     # morph, morph_inv = get_morph(bases,vtx,bas2vtx)
     # graph_vtx = get_graph_vtx(graph_lex,morph,len(vtx))
