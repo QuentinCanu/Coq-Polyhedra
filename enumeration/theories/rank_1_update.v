@@ -4,7 +4,7 @@ From Bignums Require Import BigQ.
 From mathcomp Require Import all_ssreflect all_algebra.
 From Polyhedra Require Import extra_misc inner_product vector_order.
 Require Import graph extra_array extra_int array_set rat_bigQ diameter img_graph refinement enum_algo.
-From ReductionEffect Require Import PrintingEffect.
+(* From ReductionEffect Require Import PrintingEffect. *)
 
 Set Implicit Arguments.
 Unset Strict Implicit.

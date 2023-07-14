@@ -1,34 +1,29 @@
 #! /usr/bin/env python3
 
 # --------------------------------------------------------------------
-import sys, os, json
+import sys, os, json, tqdm
 
 # --------------------------------------------------------------------
-sys.path.append(os.path.realpath(os.path.join(
-    os.path.dirname(__file__),
-    *'../../binreader/scripts'.split('/')
-)))
-
-import binreader
+from . import binreader
 
 # --------------------------------------------------------------------
 DESCRIPTORS = dict(
-    m         = 'I',
-    n         = 'I',
-    Po        = '([[Q]],[Q])',
-    lbl_lex   = '[([I],[[Q]])]',
-    lbl_simpl = '[[Q]]',
-    G_lex     = '[[I]]',
-    G_simpl   = '[[I]]',
-    morf      = '[I]',
-    morf_inv  = '[I]',
-    edge_inv  = '[[(I,I)]]',
-    cert_pos  = '[[Q]]',
-    cert_neg  = '[[Q]]',
-    origin    = 'I',
-    start     = 'I',
-    map_lbl   = '[I]',
-    inv_lbl   = '[[Q]]',
+    A = "[[Q]]",
+    b = "[Q]",
+    bases = "[[I]]",
+    pred = "[(I,I,I)]",
+    root = "I",
+    heap = "[Q]",
+    init = "[[Q]]",
+    graph_lex = "[[I]]",
+    graph_vtx = "[[I]]",
+    morph = "[I]",
+    morph_inv = "[I]",
+    edge_inv = "[[(I,I)]]",
+    bound_pos = "[[Q]]",
+    bound_neg = "[[Q]]",
+    dim = "[I]",
+    vtx_eq = "[[I]]"
 )
 
 DESCRIPTORS = {
@@ -36,21 +31,20 @@ DESCRIPTORS = {
 }
 
 # --------------------------------------------------------------------
-def _main():
-    if len(sys.argv)-1 != 1:
-        print('Usage: convert [file]', file = sys.stderr)
-        exit(1)
+def json2dict(name):
+    srcdir = os.path.join(os.path.dirname(__file__), '..', 'data', name)
 
-    name = sys.argv[1]
+    with open(os.path.join(srcdir, f'{name}.json')) as stream:
+        contents = json.load(stream)
+    
+    return contents
+
+def dict2bin(name,contents):
     srcdir = os.path.join(os.path.dirname(__file__), '..', 'data', name)
     bindir = os.path.join(srcdir, 'bin')
 
     os.makedirs(bindir, exist_ok = True)
-
-    with open(os.path.join(srcdir, f'{name}.json')) as stream:
-        contents = json.load(stream)
-
-    for key, descr in DESCRIPTORS.items():
+    for key, descr in tqdm.tqdm(DESCRIPTORS.items(), desc="Serializing certificates : "):
         if key not in contents:
             print(f'Ignoring {key}', file = sys.stderr)
             continue
@@ -58,6 +52,13 @@ def _main():
             descr.descriptor(stream)
             descr.pickle(contents[key], stream)
 
+def main(name):
+    dict2bin(name,json2dict(name))
 # --------------------------------------------------------------------
 if __name__ == '__main__':
-    _main()
+    if len(sys.argv)-1 != 1:
+        print('Usage: convert [file]', file = sys.stderr)
+        exit(1)
+
+    name = sys.argv[1]
+    main(name)
