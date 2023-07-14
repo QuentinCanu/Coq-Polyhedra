@@ -1,4 +1,4 @@
-*lrs:lrslib v.7.1 2020.10.17(64bit,lrslong.h,hybrid arithmetic)
+*lrs:lrslib_v.7.2_2022.3.6(64bit,lrslong.h,hybrid_arithmetic)
 *printcobasis 1
 *allbases
 V-representation
@@ -38,8 +38,8 @@ V#16 R#0 B#16 h=4 facets  1 2 3 4 I#4 det= 1 in_det= 1 z= 8
  1 -1 -1 -1 -1 
 end
 *Note! Duplicate vertices/rays may be present
-*Totals: vertices=16 rays=0 bases=16 integer_vertices=16 
+*Totals: vertices=16 rays=0 bases=16 integer_vertices=16  max_vertex_depth=4
 *Dictionary Cache: max size= 5 misses= 0/15   Tree Depth= 4
-*Overflow checking on lrslong arithmetic
-*lrs:lrslib v.7.1 2020.10.17(64bit,lrslong.h,hybrid arithmetic)
-*0.001u 0.000s 7304Kb 0 flts 0 swaps 0 blks-in 8 blks-out 
+*overflow checking on lrslong arithmetic
+*lrs:lrslib_v.7.2_2022.3.6(64bit,lrslong.h,hybrid arithmetic)
+*0.001u 0.001s 917504Kb 0 flts 0 swaps 0 blks-in 0 blks-out 
