@@ -19,18 +19,16 @@ def usage_and_exit():
     print(f'Usage: {sys.argv[0]} [NAME]')
     exit(1)
 
-def main():
-    if len(sys.argv) != 2:
-        usage_and_exit()
+def main(name):
     
-    name = sys.argv[1]
     srcdir = os.path.join(os.path.dirname(__file__), '..', 'data', name)
     tgtdir = os.path.join(srcdir, 'coq')
     bindir = os.path.join(srcdir,'bin')
 
     if os.path.exists(tgtdir):
         print(f"remove {os.path.join(name,'coq')} first")
-        exit(1)
+        print(f"{name} coq folder ignored")
+        return
 
     os.mkdir(tgtdir)
 
@@ -55,6 +53,9 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    if len(sys.argv) != 2:
+        usage_and_exit()
+    name = sys.argv[1]
+    main(name) 
 
 

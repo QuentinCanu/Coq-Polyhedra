@@ -4,7 +4,7 @@
 import json, sys, re, os, argparse as argp
 import subprocess as sp, shutil as sh
 
-from prerequisite import core
+from . import core
 
 # --------------------------------------------------------------------
 DUNE = r'''
@@ -38,15 +38,15 @@ def parse_args():
     return name, job, compil
 
 # --------------------------------------------------------------------
-def main():
-    name, job, compil = parse_args()
+def main(name, job, compil):
 
     srcdir = os.path.join(os.path.dirname(__file__), '..', 'jobs', job)
     jobdir = core.resource(name, f'coq_{job}')
 
     if os.path.exists(jobdir):
         print(f'remove {jobdir} first', file=sys.stderr)
-        exit(1)
+        print(f"{name}_{job} coq folder ignored")
+        return
 
     os.makedirs(jobdir)
 
@@ -69,4 +69,5 @@ def main():
 
 # --------------------------------------------------------------------
 if __name__ == "__main__":
-    main()
+    name, job, compil = parse_args()
+    main(name,job,compil)
