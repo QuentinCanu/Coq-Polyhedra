@@ -4,8 +4,8 @@ import json, os
 import fractions as fc
 import argparse as argp
 import math, fractions, random as rd
-from prerequisite import farkas as fk
-from prerequisite import core
+from . import farkas as fk
+from . import core
 
 import sympy as sym
 from sympy.polys.domains  import QQ
@@ -155,7 +155,6 @@ def get_lex_graph(A,bases,idx,inv):
                                 invs[idx_nei] = inv
                                 pred_vect[idx_nei] = (u,v)
         pointer += 1
-        print(pointer)
     return idx, [sorted(elt) for elt in graph], order[1:], pred, pred_vect
 
 # Construct the graph of vertices + certificates related to the image graph
